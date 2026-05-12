@@ -1,0 +1,36 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+
+[*.{kt,kts}]
+indent_style = space
+indent_size = 4
+max_line_length = 120
+
+ktlint_code_style = ktlint_official
+ij_kotlin_code_style_defaults = KOTLIN_OFFICIAL
+ij_kotlin_allow_trailing_comma = true
+ij_kotlin_allow_trailing_comma_on_call_site = true
+ij_kotlin_imports_layout = *
+
+# Codebase routinely declares multiple top-level types per file.
+ktlint_standard_filename = disabled
+# Wire-protocol constants and generated code intentionally use SCREAMING_SNAKE_CASE.
+ktlint_standard_property-naming = disabled
+
+# Doc-mirror samples are formatted to match the rendered docs verbatim, not the
+# project Kotlin style. Skip ktlint here so reformatting cannot drift the byte-equal
+# invariant.
+[**/samples/kotlin/**/RoutexClientSamples.kt]
+ktlint = disabled
+
+[*.{yml,yaml,json,toml}]
+indent_style = space
+indent_size = 2
+
+[Makefile]
+indent_style = tab

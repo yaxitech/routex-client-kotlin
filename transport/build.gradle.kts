@@ -1,0 +1,62 @@
+plugins {
+    id("routex.kmp-library")
+    id("routex.lint")
+    id("routex.coverage")
+    id("routex.publishing")
+}
+
+kotlin {
+    android {
+        namespace = "tech.yaxi.routex.transport"
+    }
+
+    sourceSets {
+        // CIO works on JVM, Android, and Kotlin/Native per Ktor docs, so the JVM
+        // and Android targets share a single `defaultHttpTransport()` actual.
+        // The intermediate source set keeps the door open for an Apple-side
+        // actual (Ktor Darwin) when those targets land.
+        val jvmAndAndroidMain by creating {
+            dependsOn(commonMain.get())
+            dependencies {
+                implementation(libs.ktor.client.cio)
+            }
+        }
+        jvmMain.get().dependsOn(jvmAndAndroidMain)
+        androidMain.get().dependsOn(jvmAndAndroidMain)
+
+        commonMain {
+            dependencies {
+                api(libs.kotlinx.coroutines.core)
+                // Ktor's `Url` type is exposed on `HttpRequest.url` so consumers don't
+                // have to round-trip through string concatenation; the engine modules
+                // (CIO et al.) stay on `implementation(...)` and remain swappable.
+                api(libs.ktor.client.core)
+            }
+        }
+        commonTest {
+            dependencies {
+                implementation(libs.kotlin.test)
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
+    }
+}
+
+dokka {
+    dokkaSourceSets.named("commonMain") {
+        includes.from("Module.md")
+    }
+}
+
+mavenPublishing {
+    coordinates(group.toString(), "routex-transport", version.toString())
+    pom {
+        name.set("routex-transport")
+        description.set(
+            "Internal: HTTP transport abstraction shared by routex-client, " +
+                "routex-refresh-client, and routex-settlement. Not intended for direct " +
+                "consumption; depend on it transitively via the client artifacts. May break " +
+                "between minor releases.",
+        )
+    }
+}

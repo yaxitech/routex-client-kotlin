@@ -1,0 +1,80 @@
+style:
+  MagicNumber:
+    active: true
+    ignoreNumbers:
+      - '-1'
+      - '0'
+      - '1'
+      - '2'
+      - '8'
+      - '16'
+      - '24'
+      - '32'
+      - '60'
+      - '64'
+      - '100'
+      - '256'
+      - '512'
+      - '1000'
+      - '1024'
+    excludes:
+      - '**/commonTest/**'
+      - '**/jvmTest/**'
+      - '**/jvmOracleTest/**'
+      - '**/commonOnlineTest/**'
+      - '**/jvmOnlineTest/**'
+      - '**/jvmAndAndroidOnlineTest/**'
+      - '**/androidDeviceTest/**'
+      - '**/*Test.kt'
+      - '**/*Spec.kt'
+  # Protocol error wrappers fan out into many typed errors per gate.
+  ThrowsCount:
+    active: false
+  ReturnCount:
+    active: false
+  ForbiddenComment:
+    active: true
+    comments:
+      - reason: 'TODO comments should reference an issue in your tracker.'
+        value: 'TODO:'
+      - reason: 'FIXME comments should reference an issue in your tracker.'
+        value: 'FIXME:'
+      - reason: 'STOPSHIP must never reach main.'
+        value: 'STOPSHIP:'
+
+exceptions:
+  TooGenericExceptionCaught:
+    # Error wrappers map any runtime failure into a typed wire-level error.
+    active: false
+  SwallowedException:
+    active: true
+    allowedExceptionNameRegex: '_|(ignore|expected).*'
+
+complexity:
+  # Verifier code mirrors the spec's gate list one-to-one; a synthetic
+  # complexity ceiling encourages indirection that hurts auditability.
+  CyclomaticComplexMethod:
+    active: false
+  LongMethod:
+    active: true
+    excludes:
+      - '**/jvmOracleTest/**'
+      - '**/*Test.kt'
+      - '**/*Spec.kt'
+  TooManyFunctions:
+    active: true
+    excludes:
+      - '**/jvmOracleTest/**'
+      - '**/*Test.kt'
+      - '**/*Spec.kt'
+    allowedFunctionsPerClass: 20
+    allowedFunctionsPerFile: 20
+    allowedFunctionsPerObject: 20
+
+naming:
+  # Multiple public types per file is a routine pattern in this codebase.
+  MatchingDeclarationName:
+    active: false
+  ConstructorParameterNaming:
+    active: true
+    parameterPattern: '[a-zA-Z0-9_]+'

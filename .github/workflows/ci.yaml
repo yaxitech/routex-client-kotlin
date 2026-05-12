@@ -1,0 +1,140 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  release:
+    types: [published]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+jobs:
+  check:
+    name: Build & test
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v6
+      - run: ./gradlew check
+
+  detect-online-secrets:
+    name: Detect online-test secrets
+    runs-on: ubuntu-latest
+    outputs:
+      available: ${{ steps.probe.outputs.available }}
+    steps:
+      - id: probe
+        env:
+          PROBE: ${{ secrets.YAXI_API_URL }}
+        run: |
+          if [ -n "$PROBE" ]; then
+            echo "available=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "available=false" >> "$GITHUB_OUTPUT"
+            echo "::notice::Online tests will be skipped: YAXI_API_URL not available (typical for forked PRs)."
+          fi
+
+  online-tests:
+    name: Online tests
+    needs: [check, detect-online-secrets]
+    if: needs.detect-online-secrets.outputs.available == 'true' && github.event_name != 'release'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Write local.properties
+        env:
+          YAXI_API_URL: ${{ secrets.YAXI_API_URL }}
+          YAXI_API_KEY_SECRET: ${{ secrets.YAXI_API_KEY_SECRET }}
+        run: |
+          {
+            echo "tech.yaxi.routex.url=$YAXI_API_URL"
+            echo "tech.yaxi.routex.api_key_id=test"
+            echo "tech.yaxi.routex.api_key=$YAXI_API_KEY_SECRET"
+          } > local.properties
+      - run: ./gradlew jvmOnlineTest demoOnlineTest
+
+  deploy-docs:
+    name: Deploy API docs to GitHub Pages
+    needs: check
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pages: write
+      id-token: write
+    concurrency:
+      group: pages
+      cancel-in-progress: false
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Generate Dokka HTML
+        run: ./gradlew dokkaGenerate
+      - name: Upload Pages artifact
+        uses: actions/upload-pages-artifact@v5
+        with:
+          path: build/dokka/html
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
+
+  publish:
+    name: Publish to Maven Central
+    if: github.event_name == 'release'
+    needs: check
+    runs-on: ubuntu-latest
+    env:
+      ORG_GRADLE_PROJECT_mavenCentralUsername: ${{ secrets.MAVEN_CENTRAL_USERNAME }}
+      ORG_GRADLE_PROJECT_mavenCentralPassword: ${{ secrets.MAVEN_CENTRAL_PASSWORD }}
+      ORG_GRADLE_PROJECT_signingInMemoryKey: ${{ secrets.SIGNING_IN_MEMORY_KEY }}
+      ORG_GRADLE_PROJECT_signingInMemoryKeyId: FFE12EA5
+      ORG_GRADLE_PROJECT_signingInMemoryKeyPassword: ${{ secrets.SIGNING_IN_MEMORY_PASSWORD }}
+    steps:
+      - uses: actions/checkout@v6
+      - uses: actions/setup-java@v5
+        with:
+          distribution: temurin
+          java-version: "25"
+      - uses: android-actions/setup-android@v4
+      - uses: gradle/actions/setup-gradle@v6
+      - name: Extract version from release tag
+        id: version
+        uses: actions/github-script@v9
+        with:
+          script: |
+            const tag = context.payload.release.tag_name;
+            if (!tag.startsWith('v')) {
+              core.setFailed(`Release tag '${tag}' does not start with 'v'`);
+              return;
+            }
+            core.setOutput('version', tag.slice(1));
+      - name: Publish to Maven Central
+        run: |
+          ./gradlew publishAndReleaseToMavenCentral \
+            -Ptech.yaxi.routex.version=${{ steps.version.outputs.version }}
