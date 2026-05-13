@@ -65,11 +65,13 @@ val checkDemoVersionPin by tasks.registering {
     description = "Asserts refresh-client-demo's hardcoded routex coordinate version matches the parent's."
     group = "verification"
     // Bind script-scope state into task-local vals so the doLast closure stays
-    // serializable for the configuration cache.
-    val expectedVersion = routexVersion
+    // serializable for the configuration cache. Pin against the canonical base
+    // (not the SNAPSHOT-suffixed publish version) because the demo always ships
+    // against the latest released Maven Central coordinate.
+    val expectedVersion = providers.gradleProperty("tech.yaxi.routex.version.base")
     val files = demoBuildFiles
     val rootDirPath = rootDir
-    inputs.property("parentVersion", expectedVersion)
+    inputs.property("parentBaseVersion", expectedVersion)
     files.forEach { inputs.file(it) }
     doLast {
         val expected = expectedVersion.get()
@@ -83,7 +85,7 @@ val checkDemoVersionPin by tasks.registering {
                     .toList()
             }
         check(mismatches.isEmpty()) {
-            "refresh-client-demo version pin out of sync with tech.yaxi.routex.version:\n" +
+            "refresh-client-demo version pin out of sync with tech.yaxi.routex.version.base:\n" +
                 mismatches.joinToString("\n") { "  $it" }
         }
     }
