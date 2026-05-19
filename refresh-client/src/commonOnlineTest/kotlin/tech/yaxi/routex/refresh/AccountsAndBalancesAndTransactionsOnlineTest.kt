@@ -7,14 +7,11 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.DatePeriod
 import kotlinx.datetime.TimeZone
 import kotlinx.datetime.minus
 import kotlinx.datetime.todayIn
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.Account
 import tech.yaxi.routex.models.AccountField
@@ -27,6 +24,7 @@ import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.SupportedService
 import tech.yaxi.routex.models.TransactionsResult
+import tech.yaxi.routex.tickets.Range
 
 /**
  * End-to-end check that a [tech.yaxi.routex.models.ConnectionData] from an interactive
@@ -44,30 +42,17 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
                     connectionId = OnlineTestSupport.DEMO_CONNECTION_ID,
                     userId = "result",
                 )
-            val rangeFrom =
-                Clock.System
-                    .todayIn(TimeZone.UTC)
-                    // Use less than 90 days to not trigger SCA on non-interactive sessions
-                    .minus(DatePeriod(days = 89))
-                    .toString()
-            val transactionsTicketData =
-                buildJsonObject {
-                    put(
-                        "account",
-                        buildJsonObject {
-                            put("iban", OnlineTestSupport.DEMO_IBAN)
-                            put("currency", "EUR")
-                        },
-                    )
-                    put("range", buildJsonObject { put("from", rangeFrom) })
-                }
+            // Use less than 90 days to not trigger SCA on non-interactive sessions
+            val rangeFrom = Clock.System.todayIn(TimeZone.UTC).minus(DatePeriod(days = 89))
+            val transactionsAccount = AccountReference(iban = OnlineTestSupport.DEMO_IBAN, currency = "EUR")
+            val transactionsRange = Range.Period(from = rangeFrom)
 
             // Phase 1: interactive RoutexClient drives a full SCA flow per service and
             // captures the result payload alongside a reusable ConnectionData.
             val client = OnlineTestSupport.routexClient()
 
             // Interactive Accounts
-            val accountsTicket = OnlineTestSupport.accountsTicket()
+            val accountsTicket = OnlineTestSupport.ticketIssuer.accounts()
             val accountFields =
                 listOf(
                     AccountField.Iban,
@@ -99,7 +84,7 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
             assertEquals("Dr. Peter Steiger", account.ownerName)
 
             // Interactive Balances
-            val balancesTicket = OnlineTestSupport.balancesTicket()
+            val balancesTicket = OnlineTestSupport.ticketIssuer.balances()
             val balancesResponse =
                 client.balances(
                     ticket = balancesTicket,
@@ -143,9 +128,9 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
 
             // Interactive Transactions
             val transactionsTicket =
-                OnlineTestSupport.transactionsTicket(
-                    ticketId = Uuid.random(),
-                    ticketData = transactionsTicketData,
+                OnlineTestSupport.ticketIssuer.transactions(
+                    account = transactionsAccount,
+                    range = transactionsRange,
                 )
             val transactionsResponse =
                 client.transactions(
@@ -168,7 +153,7 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
             val noninteractiveAccounts =
                 refreshClient
                     .accounts(
-                        ticket = OnlineTestSupport.accountsTicket(),
+                        ticket = OnlineTestSupport.ticketIssuer.accounts(),
                         connectionData = connectionData,
                         fields = accountFields,
                         filter = accountFilter,
@@ -181,7 +166,7 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
             val noninteractiveBalances =
                 refreshClient
                     .balances(
-                        ticket = OnlineTestSupport.balancesTicket(),
+                        ticket = OnlineTestSupport.ticketIssuer.balances(),
                         connectionData = connectionData,
                         accounts =
                             interactiveAccounts.map {
@@ -199,9 +184,9 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
                 refreshClient
                     .transactions(
                         ticket =
-                            OnlineTestSupport.transactionsTicket(
-                                ticketId = Uuid.random(),
-                                ticketData = transactionsTicketData,
+                            OnlineTestSupport.ticketIssuer.transactions(
+                                account = transactionsAccount,
+                                range = transactionsRange,
                             ),
                         connectionData = connectionData,
                     ).result

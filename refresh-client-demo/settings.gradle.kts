@@ -31,6 +31,7 @@ if (resolveUseLocal()) {
             substitute(module("tech.yaxi:routex-refresh-client")).using(project(":refresh-client"))
             substitute(module("tech.yaxi:routex-models")).using(project(":models"))
             substitute(module("tech.yaxi:routex-settlement")).using(project(":settlement"))
+            substitute(module("tech.yaxi:routex-tickets")).using(project(":tickets"))
             substitute(module("tech.yaxi:routex-transport")).using(project(":transport"))
         }
     }

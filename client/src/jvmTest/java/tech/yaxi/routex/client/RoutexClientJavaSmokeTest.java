@@ -1,10 +1,11 @@
 package tech.yaxi.routex.client;
 
+import kotlin.uuid.Uuid;
+import kotlinx.datetime.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
 import tech.yaxi.routex.models.AccountReference;
-import tech.yaxi.routex.models.Authenticated;
 import tech.yaxi.routex.models.BalancesResult;
 import tech.yaxi.routex.models.ConfirmationContext;
 import tech.yaxi.routex.models.ConnectionId;
@@ -17,21 +18,19 @@ import tech.yaxi.routex.models.Ticket;
 import tech.yaxi.routex.models.TransactionsResult;
 import tech.yaxi.routex.settlement.YaxiSystemVersionKeys;
 import tech.yaxi.routex.testing.internal.TestCredentials;
+import tech.yaxi.routex.tickets.Range;
+import tech.yaxi.routex.tickets.RoutexTicketIssuer;
 import tech.yaxi.routex.transport.DefaultHttpTransportKt;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
 import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
 import java.time.Duration;
-import java.time.Instant;
 import java.util.Base64;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
 
@@ -57,8 +56,8 @@ class RoutexClientJavaSmokeTest {
              CloseableHttpClient http = newRedirectVisitor()) {
             Credentials credentials = new Credentials(new ConnectionId(DEMO_CONNECTION_ID), "random");
 
-            UUID ticketId = UUID.randomUUID();
-            Ticket.Balances ticket = new Ticket.Balances(signTicket("Balances", ticketId, "null"));
+            Ticket.Balances ticket = newIssuer().balances();
+            Uuid ticketId = ticket.getId();
 
             List<AccountReference> accounts =
                     List.of(new AccountReference(DEMO_IBAN, "EUR"));
@@ -85,9 +84,8 @@ class RoutexClientJavaSmokeTest {
                 throw new AssertionError("Expected Response.Result, got " + resultResponse);
             }
 
-            Authenticated<BalancesResult> authenticated = result.getAuthenticated();
-            BalancesResult balancesResult = authenticated.decodeUnverified();
-            if (!ticketId.toString().equals(balancesResult.getTicketId().toString())) {
+            BalancesResult balancesResult = result.getAuthenticated().decodeUnverified();
+            if (!ticketId.equals(balancesResult.getTicketId())) {
                 throw new AssertionError(
                         "Mismatched ticket id: expected " + ticketId + ", got " + balancesResult.getTicketId());
             }
@@ -112,12 +110,10 @@ class RoutexClientJavaSmokeTest {
              CloseableHttpClient http = newRedirectVisitor()) {
             Credentials credentials = new Credentials(new ConnectionId(DEMO_CONNECTION_ID), "random");
 
-            UUID ticketId = UUID.randomUUID();
-            String ticketData = String.format(
-                    "{\"account\":{\"iban\":\"%s\",\"currency\":\"EUR\"},\"range\":{\"from\":\"2019-01-13\"}}",
-                    DEMO_IBAN);
-            Ticket.Transactions ticket =
-                    new Ticket.Transactions(signTicket("Transactions", ticketId, ticketData));
+            Ticket.Transactions ticket = newIssuer().transactions(
+                    new AccountReference(DEMO_IBAN, "EUR"),
+                    new Range.Period(new LocalDate(2019, 1, 13), null));
+            Uuid ticketId = ticket.getId();
 
             ServiceOps<TransactionsResult> ops = new ServiceOps<>() {
                 @Override public CompletableFuture<Response<TransactionsResult>> respond(InputContext context, String response) {
@@ -141,7 +137,7 @@ class RoutexClientJavaSmokeTest {
                 throw new AssertionError("Expected Response.Result, got " + resultResponse);
             }
             TransactionsResult transactionsResult = result.getAuthenticated().decodeUnverified();
-            if (!ticketId.toString().equals(transactionsResult.getTicketId().toString())) {
+            if (!ticketId.equals(transactionsResult.getTicketId())) {
                 throw new AssertionError(
                         "Mismatched ticket id: expected " + ticketId + ", got " + transactionsResult.getTicketId());
             }
@@ -211,18 +207,8 @@ class RoutexClientJavaSmokeTest {
      */
     private static void visitRedirect(HttpClient http, String url) throws Exception {
         URI parsed = URI.create(url);
-        if ("redirect.yaxi.tech".equals(parsed.getHost())) {
-            HttpRequest post = HttpRequest.newBuilder(URI.create("https://remux.yaxi.tech/redirect"))
-                    .header("Content-Type", "application/x-www-form-urlencoded")
-                    .POST(HttpRequest.BodyPublishers.ofString(
-                            parsed.getRawQuery() == null ? "" : parsed.getRawQuery(),
-                            StandardCharsets.UTF_8))
-                    .build();
-            http.send(post, HttpResponse.BodyHandlers.discarding());
-        } else {
-            HttpRequest get = HttpRequest.newBuilder(parsed).GET().build();
-            http.send(get, HttpResponse.BodyHandlers.discarding());
-        }
+        HttpRequest get = HttpRequest.newBuilder(parsed).GET().build();
+        http.send(get, HttpResponse.BodyHandlers.discarding());
     }
 
     /** {@link HttpClient} wrapper that {@link CloseableHttpClient#close()} drives the JDK 21+ shutdown. */
@@ -261,22 +247,7 @@ class RoutexClientJavaSmokeTest {
                 .build());
     }
 
-    private String signTicket(String service, UUID ticketId, String ticketDataJson) throws Exception {
-        long now = Instant.now().getEpochSecond();
-        long exp = now + 60;
-        String header = String.format(
-                "{\"alg\":\"HS256\",\"typ\":\"JWT\",\"kid\":\"%s\"}", TestCredentials.API_KEY_ID);
-        String body = String.format(
-                "{\"data\":{\"service\":\"%s\",\"id\":\"%s\",\"data\":%s},\"exp\":%d}",
-                service, ticketId, ticketDataJson, exp);
-        Base64.Encoder b64 = Base64.getUrlEncoder().withoutPadding();
-        String headerB64 = b64.encodeToString(header.getBytes(StandardCharsets.UTF_8));
-        String bodyB64 = b64.encodeToString(body.getBytes(StandardCharsets.UTF_8));
-        String signingInput = headerB64 + "." + bodyB64;
-
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(Base64.getDecoder().decode(TestCredentials.API_KEY), "HmacSHA256"));
-        byte[] signature = mac.doFinal(signingInput.getBytes(StandardCharsets.UTF_8));
-        return signingInput + "." + b64.encodeToString(signature);
+    private static RoutexTicketIssuer newIssuer() {
+        return new RoutexTicketIssuer(TestCredentials.API_KEY_ID, TestCredentials.API_KEY);
     }
 }

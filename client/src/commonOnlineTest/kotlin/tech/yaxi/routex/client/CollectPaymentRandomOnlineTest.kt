@@ -2,23 +2,22 @@ package tech.yaxi.routex.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.post
 import io.ktor.client.request.request
-import io.ktor.client.request.setBody
-import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.Url
-import io.ktor.http.contentType
 import kotlin.test.Test
 import kotlin.test.assertTrue
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Tag
+import tech.yaxi.routex.models.AccountIdentifier
+import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.DialogInput
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.Ticket
+import tech.yaxi.routex.tickets.CollectPaymentField
 
 @Tag("online")
 @OptIn(ExperimentalUuidApi::class)
@@ -29,8 +28,12 @@ class CollectPaymentRandomOnlineTest {
             val client = OnlineTestSupport.routexClient()
             val nonFollowingClient = HttpClient(CIO) { followRedirects = false }
             val ticket =
-                OnlineTestSupport.collectPaymentTicket(
-                    ticketData = OnlineTestSupport.collectPaymentTicketData(),
+                OnlineTestSupport.ticketIssuer.collectPayment(
+                    amount = Amount("100", "EUR"),
+                    creditorAccount = AccountIdentifier.Iban("DE79430609671288143100"),
+                    creditorName = "YAXI GmbH",
+                    remittance = "Sign-up fee routex 123456789",
+                    fields = listOf(CollectPaymentField.DebtorIban, CollectPaymentField.DebtorName),
                 )
             val credentials =
                 Credentials(
@@ -105,14 +108,7 @@ class CollectPaymentRandomOnlineTest {
         url: String,
     ) {
         val parsed = Url(url)
-        if (parsed.host == "redirect.yaxi.tech") {
-            httpClient.post("https://remux.yaxi.tech/redirect") {
-                contentType(ContentType.Application.FormUrlEncoded)
-                setBody(parsed.encodedQuery)
-            }
-        } else {
-            httpClient.request(parsed) { method = HttpMethod.Get }
-        }
+        httpClient.request(parsed) { method = HttpMethod.Get }
     }
 
     private companion object {

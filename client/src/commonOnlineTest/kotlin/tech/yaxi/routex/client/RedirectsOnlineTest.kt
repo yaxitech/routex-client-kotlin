@@ -2,14 +2,9 @@ package tech.yaxi.routex.client
 
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.cio.CIO
-import io.ktor.client.request.post
 import io.ktor.client.request.request
-import io.ktor.client.request.setBody
-import io.ktor.client.statement.bodyAsText
-import io.ktor.http.ContentType
 import io.ktor.http.HttpMethod
 import io.ktor.http.Url
-import io.ktor.http.contentType
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
@@ -41,7 +36,7 @@ class RedirectsOnlineTest {
     fun redirectHandleFlowResolvesToRegisteredUri() =
         runTest {
             val client = OnlineTestSupport.routexClient()
-            val ticket = OnlineTestSupport.accountsTicket()
+            val ticket = OnlineTestSupport.ticketIssuer.accounts()
 
             val response =
                 client.accounts(ticket = ticket, credentials = credentials, fields = emptyList())
@@ -63,7 +58,7 @@ class RedirectsOnlineTest {
     fun setRedirectUriFlowResolvesToRegisteredUri() =
         runTest {
             val client = OnlineTestSupport.routexClient().apply { setRedirectUri(redirectUri) }
-            val ticket = OnlineTestSupport.accountsTicket()
+            val ticket = OnlineTestSupport.ticketIssuer.accounts()
 
             val response =
                 client.accounts(ticket = ticket, credentials = credentials, fields = emptyList())
@@ -74,29 +69,11 @@ class RedirectsOnlineTest {
             assertIs<Response.Result<*>>(completion)
         }
 
-    /**
-     * Walk the bank's redirect chain to the user-visible URI. `redirect.yaxi.tech`
-     * holds the URI behind a query string the bank POSTs back; for any other host
-     * the URI sits in the `Location` header of a single 303.
-     */
     @Suppress("MagicNumber")
     private suspend fun followRedirectChain(url: String): String {
         val parsed = Url(url)
-        return if (parsed.host == "redirect.yaxi.tech") {
-            val response =
-                nonFollowingClient.post("https://remux.yaxi.tech/redirect") {
-                    contentType(ContentType.Application.FormUrlEncoded)
-                    setBody(parsed.encodedQuery)
-                }
-            val body = response.bodyAsText()
-            check(response.status.value == 200 && body.isNotBlank()) {
-                "expected 200 with a body from remux, got ${response.status.value}: $body"
-            }
-            body
-        } else {
-            val response = nonFollowingClient.request(parsed) { method = HttpMethod.Get }
-            check(response.status.value == 303) { "expected 303 from $url, got ${response.status.value}" }
-            assertNotNull(response.headers["location"], "redirect response missing Location header")
-        }
+        val response = nonFollowingClient.request(parsed) { method = HttpMethod.Get }
+        check(response.status.value == 303) { "expected 303 from $url, got ${response.status.value}" }
+        return assertNotNull(response.headers["location"], "redirect response missing Location header")
     }
 }

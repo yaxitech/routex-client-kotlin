@@ -1,3 +1,5 @@
+@file:OptIn(kotlin.uuid.ExperimentalUuidApi::class)
+
 package tech.yaxi.refresh.demo
 
 import kotlinx.coroutines.runBlocking
@@ -11,6 +13,7 @@ import tech.yaxi.routex.models.ConnectionId
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.refresh.RoutexRefreshClient
+import tech.yaxi.routex.tickets.RoutexTicketIssuer
 
 /** YAXI Demo Bank, pre-wired to return canned data without contacting a real bank. */
 private const val DEMO_CONNECTION_ID = "connection-96386142-60e5-4ca9-abcf-944efce5bc1e"
@@ -21,31 +24,39 @@ private const val DEMO_CONNECTION_ID = "connection-96386142-60e5-4ca9-abcf-944ef
  * In production, the consent half runs on the user's device and the refresh half runs on
  * your backend.
  */
-fun main(): Unit = runBlocking {
-    val creds = EnvCredentials.fromEnv()
-    val signer = TicketSigner(creds.apiKeyId, creds.apiKeySecret)
+fun main(): Unit =
+    runBlocking {
+        val creds = EnvCredentials.fromEnv()
+        val issuer = RoutexTicketIssuer(apiKeyId = creds.apiKeyId, apiKeySecret = creds.apiKeySecret)
 
-    val client = RoutexClient(creds.apiUrl)
-    val refreshClient = RoutexRefreshClient(creds.apiUrl)
+        val client = RoutexClient(creds.apiUrl)
+        val refreshClient = RoutexRefreshClient(creds.apiUrl)
 
-    val refreshContext = obtainConnectionData(client, signer)
-    val balances = refreshBalances(refreshClient, signer, refreshContext)
-    printBalances(balances)
-}
+        val refreshContext = obtainConnectionData(client, issuer)
+        val balances = refreshBalances(refreshClient, issuer, refreshContext)
+        printBalances(balances)
+    }
 
 /** Step 1: interactive accounts call with `recurringConsents=true` yields a reusable [ConnectionData]. */
-private suspend fun obtainConnectionData(client: RoutexClient, signer: TicketSigner): RefreshContext {
-    val ticket = signer.issueAccountsTicket()
+private suspend fun obtainConnectionData(
+    client: RoutexClient,
+    issuer: RoutexTicketIssuer,
+): RefreshContext {
+    val ticket = issuer.accounts()
     val credentials = Credentials(connectionId = ConnectionId.parse(DEMO_CONNECTION_ID), userId = "result")
     val fields = listOf(AccountField.Iban, AccountField.Currency, AccountField.Name)
 
     return when (val response = client.accounts(ticket, credentials, fields, recurringConsents = true)) {
         is Response.Result<AccountsResult> -> {
-            val connectionData = response.connectionData
-                ?: error("server did not return connectionData; recurringConsents not granted")
-            val refs = response.authenticated.decodeUnverified().data
-                .filter { it.iban != null }
-                .map { AccountReference(it.iban!!, it.currency) }
+            val connectionData =
+                response.connectionData
+                    ?: error("server did not return connectionData; recurringConsents not granted")
+            val refs =
+                response.authenticated
+                    .decodeUnverified()
+                    .data
+                    .filter { it.iban != null }
+                    .map { AccountReference(it.iban!!, it.currency) }
             RefreshContext(connectionData, refs)
         }
         is Response.Dialog, is Response.Redirect, is Response.RedirectHandle ->
@@ -54,8 +65,12 @@ private suspend fun obtainConnectionData(client: RoutexClient, signer: TicketSig
 }
 
 /** Step 2: non-interactive balances call using the [ConnectionData] obtained above. */
-private suspend fun refreshBalances(client: RoutexRefreshClient, signer: TicketSigner, refreshContext: RefreshContext): Balances {
-    val ticket = signer.issueBalancesTicket()
+private suspend fun refreshBalances(
+    client: RoutexRefreshClient,
+    issuer: RoutexTicketIssuer,
+    refreshContext: RefreshContext,
+): Balances {
+    val ticket = issuer.balances()
     return client.balances(ticket, refreshContext.connectionData, refreshContext.accountRefs).result
 }
 
@@ -63,7 +78,14 @@ private fun printBalances(balances: Balances) {
     for (perAccount in balances.balances) {
         val iban = perAccount.account.iban
         for (balance in perAccount.balances) {
-            println("%-9s %s %s  (%s)".format(balance.balanceType, balance.amount.toPlainString(), balance.currency, iban))
+            println(
+                "%-9s %s %s  (%s)".format(
+                    balance.balanceType,
+                    balance.amount.toPlainString(),
+                    balance.currency,
+                    iban,
+                ),
+            )
         }
     }
 }

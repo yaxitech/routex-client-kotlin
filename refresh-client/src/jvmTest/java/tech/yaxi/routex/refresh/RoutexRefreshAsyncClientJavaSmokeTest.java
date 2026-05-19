@@ -1,5 +1,7 @@
 package tech.yaxi.routex.refresh;
 
+import kotlinx.datetime.ConvertersKt;
+import kotlinx.datetime.LocalDate;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
@@ -16,15 +18,12 @@ import tech.yaxi.routex.models.Response;
 import tech.yaxi.routex.models.Ticket;
 import tech.yaxi.routex.settlement.YaxiSystemVersionKeys;
 import tech.yaxi.routex.testing.internal.TestCredentials;
+import tech.yaxi.routex.tickets.Range;
+import tech.yaxi.routex.tickets.RoutexTicketIssuer;
 import tech.yaxi.routex.transport.DefaultHttpTransportKt;
 
-import javax.crypto.Mac;
-import javax.crypto.spec.SecretKeySpec;
-import java.nio.charset.StandardCharsets;
-import java.time.Instant;
 import java.util.List;
 import java.util.Map;
-import java.util.UUID;
 import java.util.Base64;
 import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ForkJoinPool;
@@ -43,8 +42,9 @@ class RoutexRefreshAsyncClientJavaSmokeTest {
     private static final String DEMO_IBAN = "DE02120300000000202051";
 
     @Test
-    @DisplayName("RoutexRefreshAsyncClient (Java): result user → mint connectionData → drive non-interactive API")
+    @DisplayName("RoutexRefreshAsyncClient (Java): result user → issue connectionData → drive non-interactive API")
     void refreshAsyncClientFromInteractiveConnectionData() throws Exception {
+        RoutexTicketIssuer issuer = new RoutexTicketIssuer(TestCredentials.API_KEY_ID, TestCredentials.API_KEY);
         Credentials credentials = new Credentials(new ConnectionId(DEMO_CONNECTION_ID), "result");
         AccountReference account =
                 new AccountReference(DEMO_IBAN, "EUR");
@@ -57,8 +57,7 @@ class RoutexRefreshAsyncClientJavaSmokeTest {
                 DefaultHttpTransportKt.defaultHttpTransport(),
                 signingKeys(),
                 ForkJoinPool.commonPool())) {
-            Ticket.Balances balancesTicket =
-                    new Ticket.Balances(signTicket("Balances", UUID.randomUUID(), "null"));
+            Ticket.Balances balancesTicket = issuer.balances();
 
             Response<BalancesResult> response = client
                     .balances(balancesTicket, credentials, List.of(account))
@@ -83,7 +82,7 @@ class RoutexRefreshAsyncClientJavaSmokeTest {
                 ForkJoinPool.commonPool())) {
             NonInteractiveResponse<List<Account>> accounts = refresh
                     .accounts(
-                            new Ticket.Accounts(signTicket("Accounts", UUID.randomUUID(), "null")),
+                            issuer.accounts(),
                             connectionData,
                             List.of(AccountField.Iban.INSTANCE, AccountField.Currency.INSTANCE, AccountField.OwnerName.INSTANCE))
                     .get();
@@ -93,7 +92,7 @@ class RoutexRefreshAsyncClientJavaSmokeTest {
 
             NonInteractiveResponse<tech.yaxi.routex.models.Balances> balances = refresh
                     .balances(
-                            new Ticket.Balances(signTicket("Balances", UUID.randomUUID(), "null")),
+                            issuer.balances(),
                             connectionData,
                             List.of(account))
                     .get();
@@ -102,15 +101,12 @@ class RoutexRefreshAsyncClientJavaSmokeTest {
             }
 
             // Stay inside PSD2's 90-day SCA-exemption window for non-interactive transactions.
-            String rangeFrom = Instant.now().minus(java.time.Duration.ofDays(89))
-                    .toString().substring(0, 10);
-            String transactionsTicketData = String.format(
-                    "{\"account\":{\"iban\":\"%s\",\"currency\":\"EUR\"},\"range\":{\"from\":\"%s\"}}",
-                    DEMO_IBAN, rangeFrom);
+            LocalDate rangeFrom = ConvertersKt.toKotlinLocalDate(java.time.LocalDate.now().minusDays(89));
             NonInteractiveResponse<List<tech.yaxi.routex.models.Transaction>> transactions = refresh
                     .transactions(
-                            new Ticket.Transactions(
-                                    signTicket("Transactions", UUID.randomUUID(), transactionsTicketData)),
+                            issuer.transactions(
+                                    new AccountReference(DEMO_IBAN, "EUR"),
+                                    new Range.Period(rangeFrom, null)),
                             connectionData)
                     .get();
             // Transactions list may legitimately be null (no delta); the call succeeding is
@@ -135,22 +131,4 @@ class RoutexRefreshAsyncClientJavaSmokeTest {
         return YaxiSystemVersionKeys.INSTANCE.getDEFAULT();
     }
 
-    private String signTicket(String service, UUID ticketId, String ticketDataJson) throws Exception {
-        long now = Instant.now().getEpochSecond();
-        long exp = now + 60;
-        String header = String.format(
-                "{\"alg\":\"HS256\",\"typ\":\"JWT\",\"kid\":\"%s\"}", TestCredentials.API_KEY_ID);
-        String body = String.format(
-                "{\"data\":{\"service\":\"%s\",\"id\":\"%s\",\"data\":%s},\"exp\":%d}",
-                service, ticketId, ticketDataJson, exp);
-        Base64.Encoder b64 = Base64.getUrlEncoder().withoutPadding();
-        String headerB64 = b64.encodeToString(header.getBytes(StandardCharsets.UTF_8));
-        String bodyB64 = b64.encodeToString(body.getBytes(StandardCharsets.UTF_8));
-        String signingInput = headerB64 + "." + bodyB64;
-
-        Mac mac = Mac.getInstance("HmacSHA256");
-        mac.init(new SecretKeySpec(Base64.getDecoder().decode(TestCredentials.API_KEY), "HmacSHA256"));
-        byte[] signature = mac.doFinal(signingInput.getBytes(StandardCharsets.UTF_8));
-        return signingInput + "." + b64.encodeToString(signature);
-    }
 }

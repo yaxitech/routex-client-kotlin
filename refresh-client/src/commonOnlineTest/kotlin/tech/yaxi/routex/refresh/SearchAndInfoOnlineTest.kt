@@ -8,13 +8,12 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.ConnectionInfo
 import tech.yaxi.routex.models.SearchFilter
-import tech.yaxi.routex.models.Ticket
 
 @Tag("online")
 @OptIn(ExperimentalUuidApi::class)
 class SearchAndInfoOnlineTest {
     private val routexRefreshClient = OnlineTestSupport.refreshClient()
-    private val accountsTicket = Ticket.Accounts(OnlineTestSupport.rawTicket("Accounts"))
+    private val accountsTicket = OnlineTestSupport.ticketIssuer.accounts()
 
     private fun assertDemoConnectionInfo(
         info: ConnectionInfo,

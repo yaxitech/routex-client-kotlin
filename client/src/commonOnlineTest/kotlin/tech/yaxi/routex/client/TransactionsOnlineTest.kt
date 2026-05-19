@@ -6,18 +6,17 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.put
 import org.junit.jupiter.api.Tag
+import tech.yaxi.routex.models.AccountReference
 import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.BankTransactionCode
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.TransactionStatus
 import tech.yaxi.routex.models.TransactionsResult
+import tech.yaxi.routex.tickets.Range
 
 @Tag("online")
 @OptIn(ExperimentalUuidApi::class)
@@ -26,19 +25,11 @@ class TransactionsOnlineTest {
     fun transactionsFlowReturnsCanonicalDemoPayload() =
         runTest {
             val client = OnlineTestSupport.routexClient()
-            val ticketId = Uuid.random()
-            val ticketData =
-                buildJsonObject {
-                    put(
-                        "account",
-                        buildJsonObject {
-                            put("iban", "DE02120300000000202051")
-                            put("currency", "EUR")
-                        },
-                    )
-                    put("range", buildJsonObject { put("from", "2019-01-13") })
-                }
-            val ticket = OnlineTestSupport.transactionsTicket(ticketId, ticketData)
+            val ticket =
+                OnlineTestSupport.ticketIssuer.transactions(
+                    account = AccountReference(iban = "DE02120300000000202051", currency = "EUR"),
+                    range = Range.Period(LocalDate(2019, 1, 13)),
+                )
 
             val response =
                 client.transactions(
@@ -50,7 +41,7 @@ class TransactionsOnlineTest {
                         ),
                 )
             val payload = assertIs<Response.Result<TransactionsResult>>(response).authenticated.decodeUnverified()
-            assertEquals(ticketId, payload.ticketId)
+            assertEquals(ticket.id, payload.ticketId)
 
             val txs = assertNotNull(payload.data, "expected non-null transactions list")
             assertEquals(63, txs.size)

@@ -37,7 +37,7 @@ internal object AttestationReportParser {
     private const val ECDSA_SCALAR_LEN = 48
     private const val ECDSA_SCALAR_SLOT_LEN = 72
 
-    private const val TURIN_FAMILY: Int = 0x1A
+    private const val MILAN_GENOA_FAMILY: Int = 0x19
 
     fun parse(bytes: ByteArray): AttestationReport {
         if (bytes.size != AttestationReport.REPORT_LENGTH) {
@@ -50,7 +50,7 @@ internal object AttestationReportParser {
         val cpuidModId = if (versionI >= 3) bytes[OFF_CPUID_MOD_ID].toInt() and 0xFF else null
         val cpuidStep = if (versionI >= 3) bytes[OFF_CPUID_STEP].toInt() and 0xFF else null
 
-        val isTurin = versionI >= 3 && cpuidFamId == TURIN_FAMILY
+        val turinLike = isTurinLikeLayout(bytes, versionI)
 
         val guestSvn = readU32Le(bytes, OFF_GUEST_SVN)
         val policy = parsePolicy(readU64Le(bytes, OFF_POLICY))
@@ -59,10 +59,10 @@ internal object AttestationReportParser {
         val vmpl = readU32Le(bytes, OFF_VMPL)
         val signatureAlgo = SignatureAlgorithm.fromCode(readU32Le(bytes, OFF_SIGNATURE_ALGO).toInt())
 
-        val currentTcb = parseTcb(bytes, OFF_CURRENT_TCB, isTurin)
-        val reportedTcb = parseTcb(bytes, OFF_REPORTED_TCB, isTurin)
-        val committedTcb = parseTcb(bytes, OFF_COMMITTED_TCB, isTurin)
-        val launchTcb = parseTcb(bytes, OFF_LAUNCH_TCB, isTurin)
+        val currentTcb = parseTcb(bytes, OFF_CURRENT_TCB, turinLike)
+        val reportedTcb = parseTcb(bytes, OFF_REPORTED_TCB, turinLike)
+        val committedTcb = parseTcb(bytes, OFF_COMMITTED_TCB, turinLike)
+        val launchTcb = parseTcb(bytes, OFF_LAUNCH_TCB, turinLike)
 
         val platInfo = parsePlatformInfo(readU64Le(bytes, OFF_PLAT_INFO))
         val keyInfo = parseKeyInfo(readU32Le(bytes, OFF_KEY_INFO).toInt())
@@ -128,14 +128,31 @@ internal object AttestationReportParser {
         )
     }
 
+    // Milan/Genoa share family 0x19 and the legacy TCB_VERSION layout.
+    // Turin/Venice (and anything newer) use the Turin layout. For v<3 the
+    // cpuid fields are absent, so we fall back to a CHIP_ID heuristic.
+    private fun isTurinLikeLayout(
+        bytes: ByteArray,
+        version: Int,
+    ): Boolean {
+        if (version >= 3) {
+            return (bytes[OFF_CPUID_FAM_ID].toInt() and 0xFF) != MILAN_GENOA_FAMILY
+        }
+        val chipIdRange = OFF_CHIP_ID until OFF_CHIP_ID + 64
+        if (chipIdRange.all { bytes[it].toInt() and 0xFF == 0 }) {
+            throw AttestationReportDecodeError.MaskedChipIdInLegacyReport
+        }
+        return (OFF_CHIP_ID + 8 until OFF_CHIP_ID + 64).all { bytes[it].toInt() and 0xFF == 0 }
+    }
+
     private fun parseTcb(
         bytes: ByteArray,
         offset: Int,
-        isTurin: Boolean,
+        turinLike: Boolean,
     ): TcbVersion {
         val b = IntArray(8) { bytes[offset + it].toInt() and 0xFF }
         val raw = readU64Le(bytes, offset)
-        return if (isTurin) {
+        return if (turinLike) {
             TcbVersion(
                 fmc = b[0],
                 bootloader = b[1],

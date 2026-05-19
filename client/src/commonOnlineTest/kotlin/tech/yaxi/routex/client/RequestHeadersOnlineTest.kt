@@ -22,7 +22,7 @@ class RequestHeadersOnlineTest {
         runTest {
             val capturing = CapturingHttpTransport()
             val client = OnlineTestSupport.routexClient(httpTransport = capturing)
-            val ticket = OnlineTestSupport.accountsTicket()
+            val ticket = OnlineTestSupport.ticketIssuer.accounts()
 
             client.search(
                 ticket = ticket,

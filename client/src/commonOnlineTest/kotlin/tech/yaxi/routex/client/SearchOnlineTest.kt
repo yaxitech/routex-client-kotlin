@@ -16,7 +16,7 @@ class SearchOnlineTest {
     fun sparkasseSearchReturnsTwentyMatches() =
         runTest {
             val client = OnlineTestSupport.routexClient()
-            val ticket = OnlineTestSupport.accountsTicket()
+            val ticket = OnlineTestSupport.ticketIssuer.accounts()
 
             val filters =
                 "sparkasse stadt".split("\\s+".toRegex()).map { SearchFilter.Term(it) }

@@ -16,7 +16,7 @@ class SearchEncryptedIbanOnlineTest {
         runTest {
             val client =
                 OnlineTestSupport.routexClient()
-            val ticket = OnlineTestSupport.accountsTicket()
+            val ticket = OnlineTestSupport.ticketIssuer.accounts()
 
             val encrypted =
                 encryptOnFileData(

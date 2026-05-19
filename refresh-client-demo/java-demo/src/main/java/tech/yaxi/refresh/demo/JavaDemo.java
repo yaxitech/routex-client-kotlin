@@ -15,6 +15,7 @@ import tech.yaxi.routex.models.JvmBigDecimals;
 import tech.yaxi.routex.models.NonInteractiveResponse;
 import tech.yaxi.routex.models.Response;
 import tech.yaxi.routex.refresh.RoutexRefreshAsyncClient;
+import tech.yaxi.routex.tickets.RoutexTicketIssuer;
 
 /**
  * Java demo for {@code routex-refresh-client}: opens a one-shot consent against YAXI's
@@ -29,13 +30,13 @@ public final class JavaDemo {
 
     public static void main(String[] args) {
         var creds = EnvCredentials.fromEnv();
-        var signer = new TicketSigner(creds.apiKeyId(), creds.apiKeySecret());
+        var issuer = new RoutexTicketIssuer(creds.apiKeyId(), creds.apiKeySecret());
 
         try (var asyncClient = new RoutexAsyncClient(creds.apiUrl());
              var refreshClient = new RoutexRefreshAsyncClient(creds.apiUrl())) {
 
-            var balances = obtainConnectionData(asyncClient, signer)
-                .thenCompose(refreshContext -> refreshBalances(refreshClient, signer, refreshContext))
+            var balances = obtainConnectionData(asyncClient, issuer)
+                .thenCompose(refreshContext -> refreshBalances(refreshClient, issuer, refreshContext))
                 .join();
 
             printBalances(balances);
@@ -43,8 +44,8 @@ public final class JavaDemo {
     }
 
     /** Step 1: interactive accounts call with {@code recurringConsents=true} yields a reusable {@link ConnectionData}. */
-    private static CompletableFuture<RefreshContext> obtainConnectionData(RoutexAsyncClient client, TicketSigner signer) {
-        var ticket = signer.issueAccountsTicket();
+    private static CompletableFuture<RefreshContext> obtainConnectionData(RoutexAsyncClient client, RoutexTicketIssuer issuer) {
+        var ticket = issuer.accounts();
         var credentials = new Credentials(ConnectionId.parse(DEMO_CONNECTION_ID), "result");
         List<AccountField<?>> fields = List.of(AccountField.Iban.INSTANCE, AccountField.Currency.INSTANCE, AccountField.Name.INSTANCE);
 
@@ -70,9 +71,9 @@ public final class JavaDemo {
 
     /** Step 2: non-interactive balances call using the {@link ConnectionData} obtained above. */
     private static CompletableFuture<Balances> refreshBalances(
-        RoutexRefreshAsyncClient client, TicketSigner signer, RefreshContext refreshContext
+        RoutexRefreshAsyncClient client, RoutexTicketIssuer issuer, RefreshContext refreshContext
     ) {
-        var ticket = signer.issueBalancesTicket();
+        var ticket = issuer.balances();
         return client.balances(ticket, refreshContext.connectionData(), refreshContext.accountRefs(), null)
             .thenApply(NonInteractiveResponse::getResult);
     }

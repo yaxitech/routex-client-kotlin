@@ -13,7 +13,7 @@ class SystemVersionOnlineTest {
     @Test
     fun systemVersionIsPopulatedAfterSettling() {
         val client = OnlineTestSupport.routexClient()
-        val ticket = OnlineTestSupport.accountsTicket()
+        val ticket = OnlineTestSupport.ticketIssuer.accounts()
         runTest { client.info(ticket, OnlineTestSupport.YAXI_DEMO_CONNECTION_ID) }
         val systemVersion =
             assertNotNull(client.systemVersion(ticket), "systemVersion was null after service call")

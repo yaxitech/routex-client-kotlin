@@ -26,6 +26,7 @@ kotlin {
                 api(project(":models"))
                 api(project(":transport"))
                 api(project(":settlement"))
+                api(project(":tickets"))
                 api(libs.kotlinx.coroutines.core)
             }
         }
@@ -55,7 +56,6 @@ kotlin {
                 runtimeOnly(libs.junit.platform.launcher)
                 runtimeOnly(libs.slf4j.simple)
                 implementation(libs.ktor.client.cio)
-                implementation(libs.kotlincrypto.macs.hmac.sha2)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.kotlinx.datetime)

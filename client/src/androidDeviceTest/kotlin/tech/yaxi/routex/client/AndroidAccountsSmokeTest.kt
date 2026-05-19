@@ -26,7 +26,7 @@ class AndroidAccountsSmokeTest {
     fun accountsAgainstDemoConnectionReturnsResultWithExpectedShape() =
         runTest {
             val client = OnlineTestSupport.routexClient()
-            val ticket = OnlineTestSupport.accountsTicket()
+            val ticket = OnlineTestSupport.ticketIssuer.accounts()
 
             val response =
                 client.accounts(

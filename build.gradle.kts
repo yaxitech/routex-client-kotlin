@@ -16,6 +16,7 @@ dependencies {
     dokka(project(":settlement"))
     dokka(project(":client"))
     dokka(project(":refresh-client"))
+    dokka(project(":tickets"))
 }
 
 // `refresh-client-demo/` is a standalone Gradle build kept here for proximity to the
@@ -75,7 +76,7 @@ val checkDemoVersionPin by tasks.registering {
     files.forEach { inputs.file(it) }
     doLast {
         val expected = expectedVersion.get()
-        val coordsRegex = Regex("""tech\.yaxi:routex(?:-refresh)?-client:([^"]+)""")
+        val coordsRegex = Regex("""tech\.yaxi:routex(?:-refresh-client|-client|-tickets):([^"]+)""")
         val mismatches =
             files.flatMap { file ->
                 coordsRegex.findAll(file.readText())

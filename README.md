@@ -17,7 +17,7 @@ Requires JDK 17 or newer and Android `minSdk` 24.
 
 ```kotlin
 dependencies {
-    implementation("tech.yaxi:routex-client:0.3.0")
+    implementation("tech.yaxi:routex-client:0.4.0")
 }
 ```
 

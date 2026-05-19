@@ -19,7 +19,7 @@ class InfoOnlineTest {
     fun infoForUnknownConnectionReturnsNotFound() {
         val client =
             OnlineTestSupport.routexClient()
-        val ticket = OnlineTestSupport.accountsTicket()
+        val ticket = OnlineTestSupport.ticketIssuer.accounts()
         val unknownConnectionId = ConnectionId(Uuid.random())
 
         assertFailsWith<NotFound> {
@@ -34,7 +34,7 @@ class InfoOnlineTest {
         runTest {
             val client =
                 OnlineTestSupport.routexClient()
-            val ticket = OnlineTestSupport.accountsTicket()
+            val ticket = OnlineTestSupport.ticketIssuer.accounts()
 
             val info = client.info(ticket, OnlineTestSupport.YAXI_DEMO_CONNECTION_ID)
             assertEquals(OnlineTestSupport.YAXI_DEMO_CONNECTION_ID, info.id)

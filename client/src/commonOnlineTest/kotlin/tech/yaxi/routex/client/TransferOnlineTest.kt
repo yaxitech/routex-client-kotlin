@@ -4,15 +4,14 @@ import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
-import kotlin.test.assertNull
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.AccountIdentifier
 import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.PaymentProduct
+import tech.yaxi.routex.models.PaymentStatus
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.TransferDetails
 import tech.yaxi.routex.models.TransferResult
@@ -24,8 +23,7 @@ class TransferOnlineTest {
     fun transferFlowReturnsEmptyResultPayload() =
         runTest {
             val client = OnlineTestSupport.routexClient()
-            val ticketId = Uuid.random()
-            val ticket = OnlineTestSupport.transferTicket(ticketId)
+            val ticket = OnlineTestSupport.ticketIssuer.transfer()
 
             val response =
                 client.transfer(
@@ -46,7 +44,7 @@ class TransferOnlineTest {
                         ),
                 )
             val payload = assertIs<Response.Result<TransferResult>>(response).authenticated.decodeUnverified()
-            assertEquals(ticketId, payload.ticketId)
-            assertNull(payload.data.status)
+            assertEquals(ticket.id, payload.ticketId)
+            assertEquals(PaymentStatus.ACCEPTED, payload.data.status)
         }
 }

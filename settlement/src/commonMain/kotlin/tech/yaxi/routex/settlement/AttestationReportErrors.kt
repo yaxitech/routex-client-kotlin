@@ -20,4 +20,8 @@ internal sealed class AttestationReportDecodeError(
         message: String,
         cause: Throwable? = null,
     ) : AttestationReportDecodeError(message, cause)
+
+    object MaskedChipIdInLegacyReport : AttestationReportDecodeError(
+        "CHIP_ID is masked in a v<3 report so the TCB_VERSION layout cannot be determined",
+    )
 }

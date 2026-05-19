@@ -19,7 +19,7 @@ class TracesOnlineTest {
     fun traceIdChangesAfterServiceCallAndTraceIsRetrievable() =
         runTest {
             val client = OnlineTestSupport.routexClient()
-            val ticket = OnlineTestSupport.accountsTicket()
+            val ticket = OnlineTestSupport.ticketIssuer.accounts()
 
             val initialTraceId = client.traceId
 
@@ -50,7 +50,7 @@ class TracesOnlineTest {
     @Test
     fun traceCallSettlesKeyEvenWhenTraceIsNotFound() {
         val client = OnlineTestSupport.routexClient()
-        val ticket = OnlineTestSupport.accountsTicket()
+        val ticket = OnlineTestSupport.ticketIssuer.accounts()
 
         assertFailsWith<NotFound> {
             runTest {

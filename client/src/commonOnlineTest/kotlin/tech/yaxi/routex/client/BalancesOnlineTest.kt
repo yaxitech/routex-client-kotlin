@@ -5,7 +5,6 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.uuid.ExperimentalUuidApi
-import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.AccountReference
@@ -21,8 +20,7 @@ class BalancesOnlineTest {
     fun balancesFlowReturnsBookedAndAvailableBalances() =
         runTest {
             val client = OnlineTestSupport.routexClient()
-            val ticketId = Uuid.random()
-            val ticket = OnlineTestSupport.balancesTicket(ticketId)
+            val ticket = OnlineTestSupport.ticketIssuer.balances()
 
             val response =
                 client.balances(
@@ -41,7 +39,7 @@ class BalancesOnlineTest {
                         ),
                 )
             val payload = assertIs<Response.Result<BalancesResult>>(response).authenticated.decodeUnverified()
-            assertEquals(ticketId, payload.ticketId)
+            assertEquals(ticket.id, payload.ticketId)
 
             val accountBalances = payload.data.balances
             assertEquals(1, accountBalances.size)
