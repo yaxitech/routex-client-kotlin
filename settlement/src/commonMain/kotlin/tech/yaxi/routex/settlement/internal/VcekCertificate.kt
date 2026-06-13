@@ -3,6 +3,7 @@
 package tech.yaxi.routex.settlement.internal
 
 import kotlin.jvm.JvmName
+import kotlin.time.Instant
 
 /**
  * Generic X.509v3 certificate with the surface the VCEK chain validator needs:
@@ -24,6 +25,31 @@ internal expect open class X509Certificate {
 
     /** RFC 2253 distinguished name of the certificate issuer. */
     val issuerName: String
+
+    /** The subject's `commonName` (OID 2.5.4.3), or `null` when absent. */
+    val subjectCommonName: String?
+
+    /** Start of the validity window (`notBefore`), inclusive. */
+    val validFrom: Instant
+
+    /** End of the validity window (`notAfter`), inclusive. */
+    val validUntil: Instant
+
+    /** Whether Basic Constraints marks this certificate as a CA (`cA = true`). */
+    val isCertificateAuthority: Boolean
+
+    /**
+     * Basic Constraints `pathLenConstraint`: the maximum number of intermediate CA
+     * certificates that may follow this one in a chain. `null` when unconstrained or
+     * absent (only meaningful when [isCertificateAuthority]).
+     */
+    val maxIntermediateCertificates: Int?
+
+    /**
+     * Whether Key Usage permits certificate signing (`keyCertSign`). `true` when the
+     * Key Usage extension is absent, which imposes no restriction.
+     */
+    val allowsCertificateSigning: Boolean
 
     /**
      * Verify this certificate's signature was made by [issuer]'s public key. Throws

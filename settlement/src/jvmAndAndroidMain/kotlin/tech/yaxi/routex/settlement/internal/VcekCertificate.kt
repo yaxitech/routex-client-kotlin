@@ -6,12 +6,16 @@ import java.security.Signature
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate as JavaX509Certificate
 import javax.security.auth.x500.X500Principal
+import kotlin.time.Instant
 import org.bouncycastle.asn1.ASN1EncodableVector
 import org.bouncycastle.asn1.ASN1InputStream
 import org.bouncycastle.asn1.ASN1Integer
 import org.bouncycastle.asn1.ASN1OctetString
 import org.bouncycastle.asn1.DERIA5String
 import org.bouncycastle.asn1.DERSequence
+import org.bouncycastle.asn1.x500.X500Name
+import org.bouncycastle.asn1.x500.style.BCStyle
+import org.bouncycastle.asn1.x500.style.IETFUtils
 
 internal actual open class X509Certificate internal constructor(
     internal val delegate: JavaX509Certificate,
@@ -32,6 +36,42 @@ internal actual open class X509Certificate internal constructor(
             )
         }
     }
+
+    actual val subjectCommonName: String?
+        get() =
+            X500Name
+                .getInstance(delegate.subjectX500Principal.encoded)
+                .getRDNs(BCStyle.CN)
+                .firstOrNull()
+                ?.first
+                ?.value
+                ?.let { IETFUtils.valueToString(it) }
+
+    actual val validFrom: Instant
+        get() = Instant.fromEpochMilliseconds(delegate.notBefore.time)
+
+    actual val validUntil: Instant
+        get() = Instant.fromEpochMilliseconds(delegate.notAfter.time)
+
+    // `getBasicConstraints()`: -1 when not a CA, `Int.MAX_VALUE` when a CA with
+    // no path-length limit, otherwise the pathLenConstraint.
+    actual val isCertificateAuthority: Boolean
+        get() = delegate.basicConstraints != -1
+
+    actual val maxIntermediateCertificates: Int?
+        get() {
+            val basicConstraints = delegate.basicConstraints
+            return if (basicConstraints < 0 || basicConstraints == Int.MAX_VALUE) {
+                null
+            } else {
+                basicConstraints
+            }
+        }
+
+    actual val allowsCertificateSigning: Boolean
+        // `getKeyUsage()` is null when the extension is absent (no restriction);
+        // index 5 is keyCertSign.
+        get() = delegate.keyUsage?.let { it.size > 5 && it[5] } ?: true
 
     actual fun extensionAsIa5String(oid: String): String? {
         val inner = readExtensionInner(oid) ?: return null

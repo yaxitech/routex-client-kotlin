@@ -10,7 +10,7 @@ The driving difference vs. the interactive client:
 - Inputs use a [ConnectionData][tech.yaxi.routex.models.ConnectionData] envelope (obtained from a successful interactive flow's [Response.Result.connectionData][tech.yaxi.routex.models.Response.Result.connectionData] and persisted by the caller) instead of [Credentials][tech.yaxi.routex.models.Credentials].
 - Each call returns a [NonInteractiveResponse][tech.yaxi.routex.models.NonInteractiveResponse] carrying the typed payload directly.
   There is no JWT envelope and no interrupt loop: the bank either returns data or the call throws a [RoutexError][tech.yaxi.routex.models.RoutexError] subclass.
-  [InterruptError][tech.yaxi.routex.models.InterruptError] is the umbrella signal that the bank wants user input on a non-interactive call (TAN prompt, fresh SCA, anything the interactive client would resolve via `respond*` / `confirm*`); [ConsentExpired][tech.yaxi.routex.models.ConsentExpired] is the typed signal that the consent itself has expired or been revoked.
+  [InterruptError][tech.yaxi.routex.models.InterruptError] is the umbrella signal that the bank wants user input on a non-interactive call (TAN prompt, fresh SCA, anything the interactive client would resolve via `respond*` / `confirm*`).
   Both indicate the caller needs to drive a fresh interactive flow.
 - Only the read services and the discovery endpoints are exposed; payment and transfer flows are inherently interactive and remain on [RoutexClient][tech.yaxi.routex.client.RoutexClient].
 

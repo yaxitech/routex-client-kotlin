@@ -18,6 +18,7 @@ class SearchAndInfoOnlineTest {
     private fun assertDemoConnectionInfo(
         info: ConnectionInfo,
         expectedBics: List<String>?,
+        expectedBankCodes: List<String>?,
     ) {
         assertEquals(OnlineTestSupport.DEMO_CONNECTION_ID, info.id)
         assertEquals(emptyList(), info.countries)
@@ -29,6 +30,7 @@ class SearchAndInfoOnlineTest {
         assertEquals("Password", info.password)
         assertEquals("yaxi", info.logoId)
         assertEquals(expectedBics, info.bics)
+        assertEquals(expectedBankCodes, info.bankCodes)
     }
 
     @Test
@@ -40,7 +42,7 @@ class SearchAndInfoOnlineTest {
                     filters = listOf(SearchFilter.Term("YAXI Demo (user)")),
                 )
             assertEquals(1, infos.size)
-            assertDemoConnectionInfo(infos.first(), expectedBics = null)
+            assertDemoConnectionInfo(infos.first(), expectedBics = null, expectedBankCodes = null)
         }
 
     @Test
@@ -51,7 +53,7 @@ class SearchAndInfoOnlineTest {
                     ticket = accountsTicket,
                     connectionId = OnlineTestSupport.DEMO_CONNECTION_ID,
                 )
-            assertDemoConnectionInfo(demoInfo, expectedBics = emptyList())
+            assertDemoConnectionInfo(demoInfo, expectedBics = emptyList(), expectedBankCodes = emptyList())
         }
 
     @Test

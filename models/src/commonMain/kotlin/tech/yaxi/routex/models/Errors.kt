@@ -101,22 +101,6 @@ public data class Unauthorized internal constructor(
 }
 
 /**
- * The recurring consent attached to the call's [ConnectionData] has expired.
- * The YAXI service emits this only when the call carried
- * [Credentials.connectionData][tech.yaxi.routex.models.Credentials.connectionData]
- * (or, for [RoutexRefreshClient][tech.yaxi.routex.refresh.RoutexRefreshClient],
- * a stored [ConnectionData]). Restart the flow without [ConnectionData] so the
- * user can renew consent.
- */
-@ConsistentCopyVisibility
-@Serializable
-public data class ConsentExpired internal constructor(
-    public val userMessage: String? = null,
-) : RoutexError() {
-    override val message: String? get() = userMessage
-}
-
-/**
  * Account access exceeded the user's consent. Only the non-interactive
  * [transactions][tech.yaxi.routex.refresh.RoutexRefreshClient.transactions]
  * refresh path raises this error; the interactive
@@ -329,7 +313,6 @@ public object RoutexErrorDispatcher {
                 "InvalidCredentials" -> InvalidCredentials.serializer()
                 "ServiceBlocked" -> ServiceBlocked.serializer()
                 "Unauthorized" -> Unauthorized.serializer()
-                "ConsentExpired" -> ConsentExpired.serializer()
                 "AccessExceeded" -> AccessExceeded.serializer()
                 "PeriodOutOfBounds" -> PeriodOutOfBounds.serializer()
                 "UnsupportedProduct" -> UnsupportedProduct.serializer()

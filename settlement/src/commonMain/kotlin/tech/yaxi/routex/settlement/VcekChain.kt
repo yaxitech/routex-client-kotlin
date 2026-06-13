@@ -1,5 +1,7 @@
 package tech.yaxi.routex.settlement
 
+import kotlin.time.Clock
+import kotlin.time.Instant
 import tech.yaxi.routex.settlement.internal.VcekCertificate
 import tech.yaxi.routex.settlement.internal.VcekCertificateError
 import tech.yaxi.routex.settlement.internal.X509Certificate
@@ -77,6 +79,7 @@ internal object VcekChainOps {
     fun verify(
         vcekChainPem: String,
         rootStore: VcekRootStore,
+        clock: Clock = Clock.System,
     ): VcekChainVerifyResult {
         val parsed = parseChain(vcekChainPem)
         if (parsed.isEmpty()) {
@@ -95,6 +98,11 @@ internal object VcekChainOps {
             }
         val path = buildPath(leaf, intermediates, roots)
         verifyPathSignatures(path)
+        verifyConstraints(path, clock.now())
+        // The leaf is the VCEK; AMD doc 57230 Table 9 fixes its subject CN.
+        if (leaf.subjectCommonName != "SEV-VCEK") {
+            throw VcekChainError.ChainBroken("leaf subject common name is not SEV-VCEK")
+        }
         val productName = readVcek("product name") { leaf.productName }
         val tcb = readVcek("tcb extensions") { leaf.tcb }
         return VcekChainVerifyResult(
@@ -142,32 +150,80 @@ internal object VcekChainOps {
         intermediates: List<X509Certificate>,
         roots: List<X509Certificate>,
     ): List<X509Certificate> {
-        val all = intermediates + roots
         val path = mutableListOf(leaf)
         var current: X509Certificate = leaf
         while (true) {
-            val issuerDn = current.issuerName
-            val issuerCandidates = all.filter { it.subjectName == issuerDn && it !in path }
-            if (issuerCandidates.isEmpty()) {
-                throw VcekChainError.ChainBroken(
-                    "no issuer found for subject=${current.subjectName}",
-                )
-            }
-            val issuer = issuerCandidates.first()
-            path += issuer
-            if (issuer.subjectName == issuer.issuerName) {
+            // Anchor against the trusted roots only, never the supplied chain.
+            val anchor = roots.firstOrNull { it.subjectName == current.issuerName }
+            if (anchor != null) {
+                path += anchor
                 return path
             }
+            val issuer =
+                intermediates.firstOrNull { it.subjectName == current.issuerName && it !in path }
+                    ?: throw VcekChainError.ChainBroken(
+                        "no trusted issuer for subject=${current.subjectName}",
+                    )
+            path += issuer
             current = issuer
         }
     }
 
+    // Last entry is a trusted root; verify each link beneath it.
     private fun verifyPathSignatures(path: List<X509Certificate>) {
         for (i in 0 until path.size - 1) {
             verifyOne(path[i], path[i + 1], "chain[$i]")
         }
-        val root = path.last()
-        verifyOne(root, root, "root")
+    }
+
+    // RFC 5280-style constraints layered on the pinned-anchor trust model:
+    // validity and the CA / key-usage gates apply to everything the anchor
+    // vouches for (leaf plus intermediates); path length is honored for every
+    // CA including the anchor. The trusted anchor is accepted as configured;
+    // its own validity and CA flags are never re-derived from its bytes.
+    private fun verifyConstraints(
+        path: List<X509Certificate>,
+        now: Instant,
+    ) {
+        if (path.size < 2) return
+        val anchorIndex = path.size - 1
+
+        // The leaf (VCEK) is an end-entity and must not be a CA.
+        if (path[0].isCertificateAuthority) {
+            throw VcekChainError.ChainBroken("leaf certificate is a CA")
+        }
+
+        // Validity: leaf and intermediates, not the trusted anchor.
+        for (i in 0 until anchorIndex) {
+            val cert = path[i]
+            if (now < cert.validFrom) {
+                throw VcekChainError.ChainBroken("certificate chain[$i] is not yet valid")
+            }
+            if (now > cert.validUntil) {
+                throw VcekChainError.ChainBroken("certificate chain[$i] has expired")
+            }
+        }
+
+        // Issuer gates: every intermediate that signs another cert must be a CA
+        // permitted to sign certificates.
+        for (i in 1 until anchorIndex) {
+            val issuer = path[i]
+            if (!issuer.isCertificateAuthority) {
+                throw VcekChainError.ChainBroken("intermediate chain[$i] is not a CA")
+            }
+            if (!issuer.allowsCertificateSigning) {
+                throw VcekChainError.ChainBroken("intermediate chain[$i] may not sign certificates")
+            }
+        }
+
+        // Path length: each CA (intermediates and the anchor) must permit the
+        // number of intermediate CAs that sit beneath it in the path.
+        for (i in 1..anchorIndex) {
+            val maxBelow = path[i].maxIntermediateCertificates ?: continue
+            if ((i - 1) > maxBelow) {
+                throw VcekChainError.ChainBroken("path length constraint exceeded at chain[$i]")
+            }
+        }
     }
 
     private fun verifyOne(

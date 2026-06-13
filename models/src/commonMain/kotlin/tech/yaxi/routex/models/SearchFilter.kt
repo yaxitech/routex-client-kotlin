@@ -28,6 +28,10 @@ public enum class ConnectionDetails {
     /** Populate [ConnectionInfo.bics]. */
     @SerialName("bics")
     BICS,
+
+    /** Populate [ConnectionInfo.bankCodes]. */
+    @SerialName("bankCodes")
+    BANK_CODES,
 }
 
 /**

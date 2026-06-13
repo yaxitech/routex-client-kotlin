@@ -36,6 +36,8 @@ public data class CredentialsModel internal constructor(
  * @property logoId Logo identifier (resolve via the YAXI logo service).
  * @property bics ISO 20022 BICFIIdentifiers. Only populated when explicitly requested
  *   as part of a search.
+ * @property bankCodes National bank codes (as used in IBANs). Only populated when
+ *   explicitly requested as part of a search.
  */
 @ConsistentCopyVisibility
 @Serializable
@@ -49,4 +51,5 @@ public data class ConnectionInfo internal constructor(
     public val advice: String? = null,
     public val logoId: String,
     public val bics: List<String>? = null,
+    public val bankCodes: List<String>? = null,
 )

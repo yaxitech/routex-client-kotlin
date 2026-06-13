@@ -54,13 +54,7 @@ import tech.yaxi.routex.transport.defaultHttpTransport
  *    [Handling sessions](https://docs.yaxi.tech/sessions.html)).
  *  - **Outputs.** Each call returns a [NonInteractiveResponse] carrying the decoded
  *    payload directly: no JWT envelope, no
- *    [Response][tech.yaxi.routex.models.Response] interrupt branches. Bank-side
- *    failures throw a [RoutexError][tech.yaxi.routex.models.RoutexError] subclass;
- *    the two that signal "drive a fresh interactive flow" are
- *    [InterruptError][tech.yaxi.routex.models.InterruptError] (the umbrella signal
- *    when the bank wants user input on a non-interactive call) and
- *    [ConsentExpired][tech.yaxi.routex.models.ConsentExpired] (the typed signal
- *    that the consent itself has expired or been revoked).
+ *    [Response][tech.yaxi.routex.models.Response] interrupt branches.
  *  - **Surface.** Only the read services ([accounts], [balances], [transactions])
  *    plus [info] and [search] are exposed; payment and transfer flows are inherently
  *    interactive and live on [RoutexClient][tech.yaxi.routex.client.RoutexClient].
@@ -82,10 +76,7 @@ import tech.yaxi.routex.transport.defaultHttpTransport
  *
  * Service methods are `suspend` and throw on failure. Expected exceptions:
  *
- *  - [RoutexError][tech.yaxi.routex.models.RoutexError] subclasses, with
- *    [InterruptError][tech.yaxi.routex.models.InterruptError] and
- *    [ConsentExpired][tech.yaxi.routex.models.ConsentExpired] both signaling that
- *    the caller needs to re-run the interactive flow (see
+ *  - [RoutexError][tech.yaxi.routex.models.RoutexError] subclasses (see
  *    [Errors](https://docs.yaxi.tech/errors.html)).
  *  - [RoutexClientError.MalformedResponse][tech.yaxi.routex.settlement.RoutexClientError.MalformedResponse]
  *    when the server returned a payload this client could not decode (incident-grade;

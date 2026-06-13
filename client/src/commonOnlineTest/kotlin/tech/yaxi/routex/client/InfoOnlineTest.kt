@@ -48,5 +48,7 @@ class InfoOnlineTest {
             assertEquals("yaxi", info.logoId)
             val bics = assertNotNull(info.bics)
             assertTrue(bics.isEmpty(), "expected no bics, got $bics")
+            val bankCodes = assertNotNull(info.bankCodes)
+            assertTrue(bankCodes.isEmpty(), "expected no bank codes, got $bankCodes")
         }
 }

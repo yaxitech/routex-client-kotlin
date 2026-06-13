@@ -4,9 +4,9 @@ plugins {
 }
 
 dependencies {
-    implementation("tech.yaxi:routex-client:0.4.0")
-    implementation("tech.yaxi:routex-refresh-client:0.4.0")
-    implementation("tech.yaxi:routex-tickets:0.4.0")
+    implementation("tech.yaxi:routex-client:0.5.0")
+    implementation("tech.yaxi:routex-refresh-client:0.5.0")
+    implementation("tech.yaxi:routex-tickets:0.5.0")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.10.2")
     // Silence Ktor's SLF4J "no providers" warning during demo runs.
     runtimeOnly("org.slf4j:slf4j-nop:2.0.17")

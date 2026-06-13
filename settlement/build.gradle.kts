@@ -105,6 +105,7 @@ kotlin {
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.kotlinx.datetime)
+                implementation(libs.bouncycastle.pkix)
             }
         }
         getByName("androidDeviceTest") {

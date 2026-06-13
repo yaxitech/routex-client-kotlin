@@ -40,11 +40,7 @@ import tech.yaxi.routex.transport.defaultHttpTransport
  * [Response.Result.connectionData][tech.yaxi.routex.models.Response.Result.connectionData]).
  * There is no interrupt loop; calls either return a [NonInteractiveResponse] with
  * the typed payload, or throw a [RoutexError][tech.yaxi.routex.models.RoutexError]
- * subclass. The two that signal "drive a fresh interactive flow" are
- * [InterruptError][tech.yaxi.routex.models.InterruptError] (the umbrella signal
- * when the bank wants user input on a non-interactive call) and
- * [ConsentExpired][tech.yaxi.routex.models.ConsentExpired] (the typed signal that
- * the consent itself has expired or been revoked).
+ * subclass.
  *
  * ## Usage
  *
