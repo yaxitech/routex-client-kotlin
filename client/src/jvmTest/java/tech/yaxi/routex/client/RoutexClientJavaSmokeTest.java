@@ -60,7 +60,7 @@ class RoutexClientJavaSmokeTest {
             Uuid ticketId = ticket.getId();
 
             List<AccountReference> accounts =
-                    List.of(new AccountReference(DEMO_IBAN, "EUR"));
+                    List.of(AccountReference.iban(DEMO_IBAN, "EUR"));
 
             ServiceOps<BalancesResult> ops = new ServiceOps<>() {
                 @Override public CompletableFuture<Response<BalancesResult>> respond(InputContext context, String response) {
@@ -111,7 +111,7 @@ class RoutexClientJavaSmokeTest {
             Credentials credentials = new Credentials(new ConnectionId(DEMO_CONNECTION_ID), "random");
 
             Ticket.Transactions ticket = newIssuer().transactions(
-                    new AccountReference(DEMO_IBAN, "EUR"),
+                    AccountReference.iban(DEMO_IBAN, "EUR"),
                     new Range.Period(new LocalDate(2019, 1, 13), null));
             Uuid ticketId = ticket.getId();
 

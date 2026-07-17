@@ -16,6 +16,11 @@ kotlin {
         namespace = "tech.yaxi.routex.models"
     }
 
+    js(IR) {
+        nodejs()
+        useEsModules()
+    }
+
     sourceSets {
         commonMain {
             dependencies {

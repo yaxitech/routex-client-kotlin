@@ -10,14 +10,14 @@ import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.Account
 import tech.yaxi.routex.models.AccountField
-import tech.yaxi.routex.models.AccountIdentifier
-import tech.yaxi.routex.models.AccountReference
 import tech.yaxi.routex.models.AccountType
 import tech.yaxi.routex.models.AccountsResult
 import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.CollectPaymentResult
 import tech.yaxi.routex.models.Credentials
+import tech.yaxi.routex.models.CreditorAccountIdentifier
 import tech.yaxi.routex.models.DialogInput
+import tech.yaxi.routex.models.IbanReference
 import tech.yaxi.routex.models.PaymentStatus
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.SupportedService
@@ -33,7 +33,7 @@ class CollectPaymentOnlineTest {
             val ticket =
                 OnlineTestSupport.ticketIssuer.collectPayment(
                     amount = Amount("100", "EUR"),
-                    creditorAccount = AccountIdentifier.Iban("DE79430609671288143100"),
+                    creditorAccount = CreditorAccountIdentifier.Iban("DE79430609671288143100"),
                     creditorName = "YAXI GmbH",
                     remittance = "Sign-up fee routex 123456789",
                     fields = listOf(CollectPaymentField.DebtorIban, CollectPaymentField.DebtorName),
@@ -47,7 +47,7 @@ class CollectPaymentOnlineTest {
                             connectionId = OnlineTestSupport.YAXI_DEMO_CONNECTION_ID,
                             userId = "result",
                         ),
-                    account = AccountReference(iban = "DE02120300000000202051"),
+                    account = IbanReference("DE02120300000000202051"),
                 )
             val result = assertIs<Response.Result<CollectPaymentResult>>(response)
             val payload = result.authenticated.decodeUnverified().data
@@ -113,7 +113,7 @@ class CollectPaymentOnlineTest {
             val paymentTicket =
                 OnlineTestSupport.ticketIssuer.collectPayment(
                     amount = Amount("100", "EUR"),
-                    creditorAccount = AccountIdentifier.Iban("DE79430609671288143100"),
+                    creditorAccount = CreditorAccountIdentifier.Iban("DE79430609671288143100"),
                     creditorName = "YAXI GmbH",
                     remittance = "Sign-up fee routex 123456789",
                 )
@@ -122,7 +122,7 @@ class CollectPaymentOnlineTest {
                 client.collectPayment(
                     ticket = paymentTicket,
                     credentials = Credentials(connectionId = connectionId, userId = "confirmation"),
-                    account = AccountReference(iban = selectedIban),
+                    account = IbanReference(selectedIban),
                     session = respondResult.session,
                 )
             val confirmation =
@@ -135,6 +135,7 @@ class CollectPaymentOnlineTest {
             assertEquals(PaymentStatus.ACCEPTED, payment.data.status)
             assertNull(payment.data.debtorName)
             assertNull(payment.data.debtorIban)
+            assertNull(payment.data.encryptedDebtorName)
             assertNull(payment.data.encryptedDebtorIban)
 
             // Connection-data replay: a second accounts call resolves straight to Result.

@@ -63,7 +63,13 @@ public enum class BalanceType {
     @SerialName("Booked")
     BOOKED,
 
-    /** Balance from booked transactions and pending debits. */
+    /**
+     * Available balance from booked transactions.
+     *
+     * Depending on the bank, a credit line may or may not be included
+     * (see [Balance.creditLimitIncluded]). For the most current balance
+     * without credit, prefer [BOOKED] and judge recency by [Balance.dateTime].
+     */
     @SerialName("Available")
     AVAILABLE,
 

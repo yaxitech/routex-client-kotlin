@@ -47,7 +47,7 @@ class RoutexRefreshAsyncClientJavaSmokeTest {
         RoutexTicketIssuer issuer = new RoutexTicketIssuer(TestCredentials.API_KEY_ID, TestCredentials.API_KEY);
         Credentials credentials = new Credentials(new ConnectionId(DEMO_CONNECTION_ID), "result");
         AccountReference account =
-                new AccountReference(DEMO_IBAN, "EUR");
+                AccountReference.iban(DEMO_IBAN, "EUR");
 
         // Phase 1: interactive balances, userId="result" returns a Response.Result on the
         // first call, no dialog walk required, with a reusable connectionData attached.
@@ -105,7 +105,7 @@ class RoutexRefreshAsyncClientJavaSmokeTest {
             NonInteractiveResponse<List<tech.yaxi.routex.models.Transaction>> transactions = refresh
                     .transactions(
                             issuer.transactions(
-                                    new AccountReference(DEMO_IBAN, "EUR"),
+                                    AccountReference.iban(DEMO_IBAN, "EUR"),
                                     new Range.Period(rangeFrom, null)),
                             connectionData)
                     .get();

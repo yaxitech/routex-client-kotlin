@@ -5,8 +5,9 @@ import java.util.List;
 import tech.yaxi.routex.client.RoutexAsyncClient;
 import tech.yaxi.routex.models.Account;
 import tech.yaxi.routex.models.AccountField;
-import tech.yaxi.routex.models.AccountIdentifier;
+import tech.yaxi.routex.models.CreditorAccountIdentifier;
 import tech.yaxi.routex.models.AccountReference;
+import tech.yaxi.routex.models.IbanReference;
 import tech.yaxi.routex.models.AccountType;
 import tech.yaxi.routex.models.AccountsResult;
 import tech.yaxi.routex.models.Amount;
@@ -145,7 +146,7 @@ final class RoutexClientJavaSamples {
         client.balances(
             ticket,
             credentials,
-            List.of(new AccountReference("NL58YAXI1234567890", "EUR"))
+            List.of(AccountReference.iban("NL58YAXI1234567890", "EUR"))
         );
     }
 
@@ -167,7 +168,7 @@ final class RoutexClientJavaSamples {
         client.collectPayment(
             ticket,
             credentials,
-            new AccountReference("NL58YAXI1234567890", "EUR")
+            new IbanReference("NL58YAXI1234567890", "EUR")
         );
     }
 
@@ -200,11 +201,11 @@ final class RoutexClientJavaSamples {
             List.of(
                 new TransferDetails(
                     new Amount("100.00", "EUR"),
-                    new AccountIdentifier.Iban("NL58YAXI1234567890"),
+                    new CreditorAccountIdentifier.Iban("NL58YAXI1234567890"),
                     "John Doe"
                 )
             ),
-            new AccountReference("NL58YAXI1234567890", "EUR"),
+            new IbanReference("NL58YAXI1234567890", "EUR"),
             "Debtor"
         );
     }

@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.CompletableFuture;
 import tech.yaxi.routex.client.RoutexAsyncClient;
 import tech.yaxi.routex.models.AccountField;
+import tech.yaxi.routex.models.AccountIdentifier;
 import tech.yaxi.routex.models.AccountReference;
 import tech.yaxi.routex.models.AccountsResult;
 import tech.yaxi.routex.models.Balances;
@@ -58,7 +59,7 @@ public final class JavaDemo {
                     }
                     var refs = result.getAuthenticated().decodeUnverified().getData().stream()
                         .filter(a -> a.getIban() != null)
-                        .map(a -> new AccountReference(a.getIban(), a.getCurrency()))
+                        .map(a -> AccountReference.iban(a.getIban(), a.getCurrency()))
                         .toList();
                     yield new RefreshContext(connectionData, refs);
                 }
@@ -80,7 +81,12 @@ public final class JavaDemo {
 
     private static void printBalances(Balances balances) {
         for (var perAccount : balances.getBalances()) {
-            var iban = perAccount.getAccount().getIban();
+            var identifier =
+                switch (perAccount.getAccount().getId()) {
+                    case AccountIdentifier.Iban i -> i.getValue();
+                    case AccountIdentifier.Number n -> n.getValue();
+                    default -> throw new IllegalStateException("unexpected account identifier");
+                };
             for (var balance : perAccount.getBalances()) {
                 // The amount is exposed as a multiplatform BigDecimal; convert to
                 // java.math.BigDecimal for use with the JDK's monetary tooling.
@@ -90,7 +96,7 @@ public final class JavaDemo {
                     balance.getBalanceType(),
                     amount.toPlainString(),
                     balance.getCurrency(),
-                    iban
+                    identifier
                 );
             }
         }

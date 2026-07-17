@@ -44,7 +44,7 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
                 )
             // Use less than 90 days to not trigger SCA on non-interactive sessions
             val rangeFrom = Clock.System.todayIn(TimeZone.UTC).minus(DatePeriod(days = 89))
-            val transactionsAccount = AccountReference(iban = OnlineTestSupport.DEMO_IBAN, currency = "EUR")
+            val transactionsAccount = AccountReference.iban(OnlineTestSupport.DEMO_IBAN, "EUR")
             val transactionsRange = Range.Period(from = rangeFrom)
 
             // Phase 1: interactive RoutexClient drives a full SCA flow per service and
@@ -91,10 +91,7 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
                     credentials = credentials,
                     accounts =
                         interactiveAccounts.map {
-                            AccountReference(
-                                iban = it.iban!!,
-                                currency = it.currency,
-                            )
+                            AccountReference.iban(it.iban!!, it.currency)
                         },
                     recurringConsents = true,
                 )
@@ -104,7 +101,7 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
             assertEquals(1, interactiveBalances.balances.size)
             val accountBalances = interactiveBalances.balances[0]
             assertEquals(
-                AccountReference("DE02120300000000202051", "EUR"),
+                AccountReference.iban("DE02120300000000202051", "EUR"),
                 accountBalances.account,
             )
             assertEquals(2, accountBalances.balances.size)
@@ -118,6 +115,8 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
             assertEquals(BalanceType.AVAILABLE, available.balanceType)
             assertEquals("EUR", available.currency)
             assertEquals(false, available.creditLimitIncluded)
+            assertNotNull(booked.dateTime)
+            assertNotNull(available.dateTime)
 
             // Connection data for non-interactive calls
             val connectionData =
@@ -170,15 +169,28 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
                         connectionData = connectionData,
                         accounts =
                             interactiveAccounts.map {
-                                AccountReference(
-                                    iban = it.iban!!,
-                                    currency = it.currency,
-                                )
+                                AccountReference.iban(it.iban!!, it.currency)
                             },
                     ).result
 
-            // Make sure the interactive and the non-interactive results match
-            assertEquals(interactiveBalances, noninteractiveBalances)
+            // Make sure the interactive and the non-interactive results match,
+            // except the retrieval-time `dateTime` stamp which differs per run
+            assertEquals(interactiveBalances.missingAccounts, noninteractiveBalances.missingAccounts)
+            assertEquals(interactiveBalances.balances.size, noninteractiveBalances.balances.size)
+            interactiveBalances.balances.zip(noninteractiveBalances.balances).forEach { (expected, actual) ->
+                assertEquals(expected.account, actual.account)
+                assertEquals(expected.balances.size, actual.balances.size)
+                expected.balances.zip(actual.balances).forEach { (expectedBalance, actualBalance) ->
+                    assertEquals(expectedBalance.amount, actualBalance.amount)
+                    assertEquals(expectedBalance.balanceType, actualBalance.balanceType)
+                    assertEquals(expectedBalance.currency, actualBalance.currency)
+                    assertEquals(
+                        expectedBalance.creditLimitIncluded,
+                        actualBalance.creditLimitIncluded,
+                    )
+                    assertNotNull(actualBalance.dateTime)
+                }
+            }
 
             val noninteractiveTransactions =
                 refreshClient

@@ -15,6 +15,7 @@ public data class NonInteractiveResponse<T>(
 public data class NonInteractiveAccountsRequest(
     public val connectionData: ConnectionData,
     public val session: Session? = null,
+    public val userInSession: UserInSession? = null,
     public val fields: List<AccountField<*>>,
     public val filter: AccountFilter? = null,
 )
@@ -24,6 +25,7 @@ public data class NonInteractiveAccountsRequest(
 public data class NonInteractiveBalancesRequest(
     public val connectionData: ConnectionData,
     public val session: Session? = null,
+    public val userInSession: UserInSession? = null,
     public val accounts: List<AccountReference>,
 )
 
@@ -32,4 +34,5 @@ public data class NonInteractiveBalancesRequest(
 public data class NonInteractiveTransactionsRequest(
     public val connectionData: ConnectionData,
     public val session: Session? = null,
+    public val userInSession: UserInSession? = null,
 )

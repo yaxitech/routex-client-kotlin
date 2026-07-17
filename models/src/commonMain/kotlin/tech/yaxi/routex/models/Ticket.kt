@@ -1,5 +1,6 @@
 package tech.yaxi.routex.models
 
+import kotlin.jvm.JvmStatic
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.serialization.SerializationException

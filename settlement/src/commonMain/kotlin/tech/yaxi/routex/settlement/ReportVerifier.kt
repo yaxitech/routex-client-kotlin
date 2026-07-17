@@ -105,7 +105,7 @@ internal object ReportVerifier {
         verifyTcbAgainstVcek(report.reportedTcb, chain.vcekTcb)
     }
 
-    fun verifyBytes(
+    suspend fun verifyBytes(
         reportBytes: ByteArray,
         vcekChainPem: String,
         rootStore: VcekRootStore,

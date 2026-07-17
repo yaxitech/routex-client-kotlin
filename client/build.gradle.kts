@@ -35,6 +35,11 @@ kotlin {
 
     jvm()
 
+    js(IR) {
+        nodejs()
+        useEsModules()
+    }
+
     sourceSets {
         commonMain {
             dependencies {
@@ -117,6 +122,12 @@ kotlin {
             }
         }
     }
+}
+
+tasks.named<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>("jsNodeTest") {
+    // commonTest includes only @sample snippets (no @Test methods), so the JS runner
+    // will never discover any tests.
+    failOnNoDiscoveredTests = false
 }
 
 tasks.named<Test>("jvmTest") {

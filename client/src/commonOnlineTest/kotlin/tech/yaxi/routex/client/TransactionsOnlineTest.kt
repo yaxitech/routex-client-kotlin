@@ -27,7 +27,7 @@ class TransactionsOnlineTest {
             val client = OnlineTestSupport.routexClient()
             val ticket =
                 OnlineTestSupport.ticketIssuer.transactions(
-                    account = AccountReference(iban = "DE02120300000000202051", currency = "EUR"),
+                    account = AccountReference.iban("DE02120300000000202051", "EUR"),
                     range = Range.Period(LocalDate(2019, 1, 13)),
                 )
 

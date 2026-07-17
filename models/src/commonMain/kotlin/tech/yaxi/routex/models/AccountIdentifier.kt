@@ -1,6 +1,7 @@
 package tech.yaxi.routex.models
 
 import kotlin.io.encoding.Base64
+import kotlin.jvm.JvmStatic
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.SerializationException
@@ -15,13 +16,70 @@ import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
 
 /**
- * Identifier of an account, used when referencing creditor or debtor accounts in
- * payment-related requests.
+ * Identifier of a creditor account in payment services.
+ */
+@Serializable(with = CreditorAccountIdentifierSerializer::class)
+public sealed class CreditorAccountIdentifier {
+    /** ISO 20022 IBAN2007Identifier. */
+    public data class Iban(
+        public val value: String,
+    ) : CreditorAccountIdentifier()
+}
+
+/** @suppress */
+public object CreditorAccountIdentifierSerializer : KSerializer<CreditorAccountIdentifier> {
+    override val descriptor: SerialDescriptor =
+        buildClassSerialDescriptor("tech.yaxi.routex.models.CreditorAccountIdentifier")
+
+    override fun serialize(
+        encoder: Encoder,
+        value: CreditorAccountIdentifier,
+    ) {
+        val jsonEncoder =
+            encoder as? JsonEncoder
+                ?: throw SerializationException("CreditorAccountIdentifier only supports JSON")
+        jsonEncoder.encodeJsonElement(encodeToJsonObject(value))
+    }
+
+    override fun deserialize(decoder: Decoder): CreditorAccountIdentifier {
+        val jsonDecoder =
+            decoder as? JsonDecoder
+                ?: throw SerializationException("CreditorAccountIdentifier only supports JSON")
+        val obj =
+            jsonDecoder.decodeJsonElement() as? JsonObject
+                ?: throw SerializationException("Expected JSON object for CreditorAccountIdentifier")
+        return decodeFromJsonObject(obj)
+    }
+
+    internal fun encodeToJsonObject(value: CreditorAccountIdentifier): JsonObject =
+        when (value) {
+            is CreditorAccountIdentifier.Iban ->
+                JsonObject(mapOf("iban" to JsonPrimitive(value.value)))
+        }
+
+    internal fun decodeFromJsonObject(obj: JsonObject): CreditorAccountIdentifier {
+        val iban = obj["iban"]
+        if (iban is JsonPrimitive && iban.isString) {
+            return CreditorAccountIdentifier.Iban(iban.content)
+        }
+        throw SerializationException(
+            "Unknown or malformed CreditorAccountIdentifier variant in object: ${obj.keys}",
+        )
+    }
+}
+
+/**
+ * Identifier of an account referenced by the account-information services.
  */
 @Serializable(with = AccountIdentifierSerializer::class)
 public sealed class AccountIdentifier {
     /** ISO 20022 IBAN2007Identifier. */
     public data class Iban(
+        public val value: String,
+    ) : AccountIdentifier()
+
+    /** Account number that is not an IBAN, e.g. ISO 20022 BBANIdentifier. */
+    public data class Number(
         public val value: String,
     ) : AccountIdentifier()
 }
@@ -55,34 +113,50 @@ public object AccountIdentifierSerializer : KSerializer<AccountIdentifier> {
         when (value) {
             is AccountIdentifier.Iban ->
                 JsonObject(mapOf("iban" to JsonPrimitive(value.value)))
+            is AccountIdentifier.Number ->
+                JsonObject(mapOf("number" to JsonPrimitive(value.value)))
         }
 
     internal fun decodeFromJsonObject(obj: JsonObject): AccountIdentifier {
-        val iban = obj["iban"]
-        if (iban is JsonPrimitive && iban.isString) {
-            return AccountIdentifier.Iban(iban.content)
+        (obj["iban"] as? JsonPrimitive)?.takeIf { it.isString }?.let {
+            return AccountIdentifier.Iban(it.content)
+        }
+        (obj["number"] as? JsonPrimitive)?.takeIf { it.isString }?.let {
+            return AccountIdentifier.Number(it.content)
         }
         throw SerializationException(
             "Unknown or malformed AccountIdentifier variant in object: ${obj.keys}",
         )
     }
-
-    internal val identifierKeys: Set<String> = setOf("iban")
 }
 
 /**
- * Reference to an account by IBAN, with an optional ISO 4217 currency code for
- * multi-currency accounts.
+ * Reference to an account by IBAN or account number, with an optional ISO 4217
+ * currency code for multi-currency accounts.
  *
- * Implements [DebtorAccountReference] so the same value can be passed to the
- * collect-payment service without conversion; encrypted-IBAN debtors are
- * represented by [EncryptedIbanReference].
+ * Construct with [iban] or [number]; the chosen identifier is held in [id].
  */
 @Serializable(with = AccountReferenceSerializer::class)
 public data class AccountReference(
-    public val iban: String,
-    public override val currency: String? = null,
-) : DebtorAccountReference
+    public val id: AccountIdentifier,
+    public val currency: String? = null,
+) {
+    public companion object {
+        /** Reference an account by its ISO 20022 IBAN2007Identifier. */
+        @JvmStatic
+        public fun iban(
+            iban: String,
+            currency: String? = null,
+        ): AccountReference = AccountReference(AccountIdentifier.Iban(iban), currency)
+
+        /** Reference an account by a non-IBAN account number, e.g. an ISO 20022 BBANIdentifier. */
+        @JvmStatic
+        public fun number(
+            number: String,
+            currency: String? = null,
+        ): AccountReference = AccountReference(AccountIdentifier.Number(number), currency)
+    }
+}
 
 /** @suppress */
 public object AccountReferenceSerializer : KSerializer<AccountReference> {
@@ -112,41 +186,35 @@ public object AccountReferenceSerializer : KSerializer<AccountReference> {
     internal fun encodeToJsonObject(value: AccountReference): JsonObject =
         JsonObject(
             buildMap<String, JsonElement> {
-                put("iban", JsonPrimitive(value.iban))
+                putAll(AccountIdentifierSerializer.encodeToJsonObject(value.id))
                 value.currency?.let { put("currency", JsonPrimitive(it)) }
             },
         )
 
     internal fun decodeFromJsonObject(obj: JsonObject): AccountReference {
-        val ibanElement = obj["iban"]
-        val iban =
-            (ibanElement as? JsonPrimitive)?.takeIf { it.isString }?.content
-                ?: throw SerializationException("AccountReference requires a string `iban` field")
+        val id = AccountIdentifierSerializer.decodeFromJsonObject(obj)
         val currency =
             (obj["currency"] as? JsonPrimitive)?.let {
                 if (it.isString) it.content else null
             }
-        val unknown = obj.keys - setOf("iban", "currency")
+        val unknown = obj.keys - setOf("iban", "number", "currency")
         if (unknown.isNotEmpty()) {
             throw SerializationException("Unknown keys in AccountReference: $unknown")
         }
-        return AccountReference(iban, currency)
+        return AccountReference(id, currency)
     }
 }
 
 /**
- * Reference to a debtor account for the collect-payment service.
+ * Reference to a debtor account for the collect-payment and transfer services.
  *
- * The collect-payment service accepts either a plain [AccountReference] or an
- * [EncryptedIbanReference] ciphertext your backend produced with its API secret
- * following the [Opaque Data](https://docs.yaxi.tech/opaque-data.html) protocol so the
- * frontend never sees the underlying IBAN.
- *
- * Pass an [AccountReference] returned by the accounts service straight through:
+ * Pass an [IbanReference] for a plain IBAN, or — for the collect-payment service — an
+ * [EncryptedIbanReference] ciphertext your backend produced with its API secret following
+ * the [Opaque Data](https://docs.yaxi.tech/opaque-data.html) protocol so the frontend
+ * never sees the underlying IBAN.
  *
  * ```
- * val account: AccountReference = result.data.first().toAccountReference()
- * client.collectPayment(ticket, credentials, account = account)
+ * client.collectPayment(ticket, credentials, account = IbanReference("NL58YAXI1234567890"))
  * ```
  *
  * For an encrypted handoff use [EncryptedIbanReference]:
@@ -164,6 +232,15 @@ public sealed interface DebtorAccountReference {
     /** ISO 4217 Alpha 3 currency code for multi-currency accounts. */
     public val currency: String?
 }
+
+/**
+ * Reference to a debtor account by IBAN, with an optional ISO 4217 currency code, for the
+ * collect-payment and transfer services.
+ */
+public data class IbanReference(
+    public val iban: String,
+    public override val currency: String? = null,
+) : DebtorAccountReference
 
 /**
  * Reference to a debtor account by encrypted-IBAN ciphertext, for the collect-payment
@@ -213,7 +290,13 @@ public object DebtorAccountReferenceSerializer : KSerializer<DebtorAccountRefere
                 ?: throw SerializationException("DebtorAccountReference only supports JSON")
         val obj =
             when (value) {
-                is AccountReference -> AccountReferenceSerializer.encodeToJsonObject(value)
+                is IbanReference ->
+                    JsonObject(
+                        buildMap<String, JsonElement> {
+                            put("iban", JsonPrimitive(value.iban))
+                            value.currency?.let { put("currency", JsonPrimitive(it)) }
+                        },
+                    )
                 is EncryptedIbanReference ->
                     JsonObject(
                         buildMap<String, JsonElement> {
@@ -244,6 +327,17 @@ public object DebtorAccountReferenceSerializer : KSerializer<DebtorAccountRefere
             }
             return EncryptedIbanReference(Base64.Default.decode(encrypted.content), currency)
         }
-        return AccountReferenceSerializer.decodeFromJsonObject(obj)
+        val iban =
+            (obj["iban"] as? JsonPrimitive)?.takeIf { it.isString }?.content
+                ?: throw SerializationException("DebtorAccountReference requires a string `iban` field")
+        val currency =
+            (obj["currency"] as? JsonPrimitive)?.let {
+                if (it.isString) it.content else null
+            }
+        val unknown = obj.keys - setOf("iban", "currency")
+        if (unknown.isNotEmpty()) {
+            throw SerializationException("Unknown keys in DebtorAccountReference: $unknown")
+        }
+        return IbanReference(iban, currency)
     }
 }

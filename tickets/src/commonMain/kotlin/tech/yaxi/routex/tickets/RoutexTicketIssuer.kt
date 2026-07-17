@@ -7,9 +7,9 @@ import kotlin.time.Duration
 import kotlin.time.Duration.Companion.minutes
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
-import tech.yaxi.routex.models.AccountIdentifier
 import tech.yaxi.routex.models.AccountReference
 import tech.yaxi.routex.models.Amount
+import tech.yaxi.routex.models.CreditorAccountIdentifier
 import tech.yaxi.routex.models.InternalRoutexApi
 import tech.yaxi.routex.models.Ticket
 import tech.yaxi.routex.tickets.internal.buildClaimsJson
@@ -140,7 +140,7 @@ public class RoutexTicketIssuer internal constructor(
     @Suppress("LongParameterList")
     public fun collectPayment(
         amount: Amount,
-        creditorAccount: AccountIdentifier,
+        creditorAccount: CreditorAccountIdentifier,
         creditorName: String,
         remittance: String,
         instant: Boolean? = null,

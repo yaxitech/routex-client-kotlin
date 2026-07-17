@@ -1,5 +1,22 @@
 # Changelog
 
+## [0.6.0] - 2026-07-16
+
+### Added
+
+- Kotlin/JS target.
+- Reference accounts that have no IBAN in the balances and transactions services via `AccountReference.number(number, currency?)` (e.g. an ISO 20022 BBAN). `AccountReference` now carries a sealed `AccountIdentifier` (`Iban` | `Number`) in `id`.
+- `IbanReference`, a plain-IBAN debtor account reference for the collect-payment and transfer services.
+- `CollectPaymentField.EncryptedDebtorName` to request the debtor name in encrypted form (`PaymentInitiation.encryptedDebtorName`), mirroring `EncryptedDebtorIban`.
+- `Balance.dateTime`, the moment a balance is valid (ISO 8601 date-time).
+- `userInSession` constructor option on `RoutexRefreshClient` / `RoutexRefreshAsyncClient` (`UserInSession.OnThisConnection` or `UserInSession.At(ipAddress)`) to signal an in-session user.
+
+### Changed
+
+- **Breaking:** construct an `AccountReference` with the `AccountReference.iban(iban, currency?)` / `AccountReference.number(...)` factories instead of `AccountReference(iban, currency?)`; the identifier is read from `id` rather than a top-level `iban` field.
+- **Breaking:** the IBAN-only payment-creditor identifier is renamed `AccountIdentifier` → `CreditorAccountIdentifier` (the `creditorAccount` type for the collect-payment and transfer services); `AccountIdentifier` now denotes the account-information reference identifier.
+- **Breaking:** `AccountReference` is no longer a `DebtorAccountReference`; pass the collect-payment/transfer debtor account as an `IbanReference` (plain IBAN) instead of an `AccountReference`. Encrypted debtors continue to use `EncryptedIbanReference`.
+
 ## [0.5.0] - 2026-06-14
 
 ### Added

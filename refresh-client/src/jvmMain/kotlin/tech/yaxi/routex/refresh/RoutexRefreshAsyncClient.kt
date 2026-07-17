@@ -24,6 +24,7 @@ import tech.yaxi.routex.models.SearchFilter
 import tech.yaxi.routex.models.Session
 import tech.yaxi.routex.models.Ticket
 import tech.yaxi.routex.models.Transaction
+import tech.yaxi.routex.models.UserInSession
 import tech.yaxi.routex.settlement.SystemVersionEntry
 import tech.yaxi.routex.transport.HttpTransport
 import tech.yaxi.routex.transport.defaultHttpTransport
@@ -86,14 +87,18 @@ public class RoutexRefreshAsyncClient private constructor(
      * @param executor Executor backing every emitted [CompletableFuture]. Defaults
      *   to [ForkJoinPool.commonPool]; supply a dedicated pool to isolate Routex
      *   work from the rest of the JVM.
+     * @param userInSession Indicates a user is in session for every service call this
+     *   client makes, lifting the bank's limit on requests without one (see
+     *   [UserInSession]). `null` (default) makes calls without a user in session.
      */
     @JvmOverloads
     public constructor(
         baseUrl: Url = DEFAULT_BASE_URL,
         httpTransport: HttpTransport = defaultHttpTransport(),
         executor: Executor = ForkJoinPool.commonPool(),
+        userInSession: UserInSession? = null,
     ) : this(
-        delegate = RoutexRefreshClient(baseUrl, httpTransport),
+        delegate = RoutexRefreshClient(baseUrl, httpTransport, userInSession),
         scope = CoroutineScope(SupervisorJob() + executor.asCoroutineDispatcher()),
     )
 
@@ -103,7 +108,8 @@ public class RoutexRefreshAsyncClient private constructor(
         baseUrl: String,
         httpTransport: HttpTransport = defaultHttpTransport(),
         executor: Executor = ForkJoinPool.commonPool(),
-    ) : this(Url(baseUrl), httpTransport, executor)
+        userInSession: UserInSession? = null,
+    ) : this(Url(baseUrl), httpTransport, executor, userInSession)
 
     /**
      * Test-only constructor overriding the system-version verifying keys.
@@ -116,8 +122,9 @@ public class RoutexRefreshAsyncClient private constructor(
         httpTransport: HttpTransport,
         signingKeys: Map<String, ByteArray>,
         executor: Executor = ForkJoinPool.commonPool(),
+        userInSession: UserInSession? = null,
     ) : this(
-        delegate = RoutexRefreshClient(baseUrl, httpTransport, signingKeys),
+        delegate = RoutexRefreshClient(baseUrl, httpTransport, signingKeys, userInSession),
         scope = CoroutineScope(SupervisorJob() + executor.asCoroutineDispatcher()),
     )
 

@@ -8,14 +8,14 @@ import kotlin.test.assertIs
 
 class DebtorAccountReferenceTest {
     @Test
-    fun accountReferenceIsADebtorAccountReference() {
-        val account: DebtorAccountReference = AccountReference("NL58YAXI1234567890", "EUR")
-        assertIs<AccountReference>(account)
+    fun ibanReferenceIsADebtorAccountReference() {
+        val account: DebtorAccountReference = IbanReference("NL58YAXI1234567890", "EUR")
+        assertIs<IbanReference>(account)
     }
 
     @Test
-    fun encodesAccountReferenceAsPlainIbanShape() {
-        val account: DebtorAccountReference = AccountReference("NL58YAXI1234567890", "EUR")
+    fun encodesIbanReferenceAsPlainIbanShape() {
+        val account: DebtorAccountReference = IbanReference("NL58YAXI1234567890", "EUR")
         val json = RoutexJson.encodeToString(DebtorAccountReferenceSerializer, account)
         assertEquals("""{"iban":"NL58YAXI1234567890","currency":"EUR"}""", json)
     }
@@ -29,14 +29,14 @@ class DebtorAccountReferenceTest {
     }
 
     @Test
-    fun decodesPlainIbanShapeIntoAccountReference() {
+    fun decodesPlainIbanShapeIntoIbanReference() {
         val decoded =
             RoutexJson.decodeFromString(
                 DebtorAccountReferenceSerializer,
                 """{"iban":"NL58YAXI1234567890","currency":"EUR"}""",
             )
         assertEquals(
-            AccountReference("NL58YAXI1234567890", "EUR"),
+            IbanReference("NL58YAXI1234567890", "EUR"),
             decoded,
         )
     }

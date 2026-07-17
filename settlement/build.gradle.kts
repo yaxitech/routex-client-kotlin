@@ -65,6 +65,11 @@ kotlin {
 
     jvm()
 
+    js(IR) {
+        nodejs()
+        useEsModules()
+    }
+
     sourceSets {
         val jvmAndAndroidMain by creating {
             dependsOn(commonMain.get())
@@ -82,6 +87,19 @@ kotlin {
                 api(libs.kotlinx.serialization.core)
                 api(libs.kotlinx.serialization.json)
                 api(libs.kotlinx.coroutines.core)
+            }
+        }
+
+        val jsMain by getting {
+            dependencies {
+                // npm versions are pinned to match js/settlement/package.json.
+                implementation(npm("@noble/ciphers", "^2.0.0"))
+                implementation(npm("@noble/curves", "^2.0.0"))
+                implementation(npm("@noble/hashes", "^2.0.0"))
+                implementation(npm("@peculiar/asn1-schema", "^2.3.15"))
+                implementation(npm("@peculiar/asn1-x509", "^2.3.15"))
+                implementation(npm("@peculiar/x509", "^1.12.3"))
+                implementation(npm("asn1js", "^3.0.6"))
             }
         }
         commonTest {

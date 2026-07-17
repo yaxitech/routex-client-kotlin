@@ -4,9 +4,9 @@ package tech.yaxi.routex.settlement.internal
 // in `commonMain`. Each function takes raw byte arrays and returns raw byte arrays, no
 // platform crypto types leak through.
 //
-// JVM/Android back these with BouncyCastle. A future Darwin source set will back them
-// with CryptoKit / CommonCrypto. No other consumer of this package may take a direct
-// dependency on a platform crypto library.
+// JVM/Android back these with BouncyCastle; JS backs them with the @noble/* suite.
+// A future Darwin source set will back them with CryptoKit / CommonCrypto.
+// No other consumer of this package may take a direct dependency on a platform crypto library.
 
 /** SHA-256 digest. */
 internal expect fun sha256(bytes: ByteArray): ByteArray

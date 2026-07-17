@@ -78,7 +78,7 @@ internal fun prepareTransfer(
     session: Session?,
     recurringConsents: Boolean,
     product: PaymentProduct,
-    debtorAccount: AccountReference?,
+    debtorAccount: DebtorAccountReference?,
     debtorName: String?,
     requestedExecutionDate: IsoDateTimeOrDate?,
     details: List<TransferDetails>,

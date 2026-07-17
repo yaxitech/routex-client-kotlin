@@ -101,11 +101,12 @@ public data class Unauthorized internal constructor(
 }
 
 /**
- * Account access exceeded the user's consent. Only the non-interactive
- * [transactions][tech.yaxi.routex.refresh.RoutexRefreshClient.transactions]
- * refresh path raises this error; the interactive
- * [transactions][tech.yaxi.routex.client.RoutexClient.transactions] flow does
- * not.
+ * The bank rejected the request for exceeding the consent's permitted access
+ * frequency.
+ *
+ * This most commonly arises on the non-interactive refresh service, where a caller
+ * exceeds the bank's limit on requests made without a user in session. Pass a
+ * [UserInSession] to lift that limit.
  */
 @ConsistentCopyVisibility
 @Serializable

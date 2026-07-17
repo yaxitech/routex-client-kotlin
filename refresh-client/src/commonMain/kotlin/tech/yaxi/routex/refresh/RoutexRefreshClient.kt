@@ -21,6 +21,7 @@ import tech.yaxi.routex.models.SearchFilter
 import tech.yaxi.routex.models.Session
 import tech.yaxi.routex.models.Ticket
 import tech.yaxi.routex.models.Transaction
+import tech.yaxi.routex.models.UserInSession
 import tech.yaxi.routex.refresh.internal.prepareNonInteractiveAccounts
 import tech.yaxi.routex.refresh.internal.prepareNonInteractiveBalances
 import tech.yaxi.routex.refresh.internal.prepareNonInteractiveTransactions
@@ -93,6 +94,7 @@ import tech.yaxi.routex.transport.defaultHttpTransport
  */
 public class RoutexRefreshClient internal constructor(
     internal val core: RoutexClientCore,
+    internal val userInSession: UserInSession? = null,
 ) {
     /**
      * Construct a client.
@@ -100,13 +102,18 @@ public class RoutexRefreshClient internal constructor(
      * @param baseUrl Base URL of the YAXI API. Defaults to the production endpoint.
      * @param httpTransport HTTP transport. Defaults to a Ktor engine selected per
      *   platform.
+     * @param userInSession Indicates a user is in session for every service call this
+     *   client makes, lifting the bank's limit on requests without one (see
+     *   [UserInSession]). `null` (default) makes calls without a user in session.
      */
     @JvmOverloads
     public constructor(
         baseUrl: Url = DEFAULT_BASE_URL,
         httpTransport: HttpTransport = defaultHttpTransport(),
+        userInSession: UserInSession? = null,
     ) : this(
         core = RoutexClientCore { Settlement(baseUrl = baseUrl, httpTransport = httpTransport) },
+        userInSession = userInSession,
     )
 
     /** Convenience overload that parses `baseUrl` as a Ktor [Url]. */
@@ -114,17 +121,20 @@ public class RoutexRefreshClient internal constructor(
     public constructor(
         baseUrl: String,
         httpTransport: HttpTransport = defaultHttpTransport(),
-    ) : this(Url(baseUrl), httpTransport)
+        userInSession: UserInSession? = null,
+    ) : this(Url(baseUrl), httpTransport, userInSession)
 
     internal constructor(
         baseUrl: Url,
         httpTransport: HttpTransport,
         signingKeys: Map<String, ByteArray>,
+        userInSession: UserInSession? = null,
     ) : this(
         core =
             RoutexClientCore {
                 Settlement(baseUrl = baseUrl, httpTransport = httpTransport, signingKeys = signingKeys)
             },
+        userInSession = userInSession,
     )
 
     /**
@@ -199,7 +209,8 @@ public class RoutexRefreshClient internal constructor(
         filter: AccountFilter? = null,
         session: Session? = null,
     ): NonInteractiveResponse<List<Account>> {
-        val body = prepareNonInteractiveAccounts(connectionData, session, fields, filter)
+        val body =
+            prepareNonInteractiveAccounts(connectionData, session, userInSession, fields, filter)
         val bytes = encodeRequestBody(NonInteractiveAccountsRequest.serializer(), body)
         return readNonInteractiveResponse(
             core.request(ticket, "accounts/non-interactive", bytes),
@@ -220,7 +231,8 @@ public class RoutexRefreshClient internal constructor(
         accounts: List<AccountReference>,
         session: Session? = null,
     ): NonInteractiveResponse<Balances> {
-        val body = prepareNonInteractiveBalances(connectionData, session, accounts)
+        val body =
+            prepareNonInteractiveBalances(connectionData, session, userInSession, accounts)
         val bytes = encodeRequestBody(NonInteractiveBalancesRequest.serializer(), body)
         return readNonInteractiveResponse(
             core.request(ticket, "balances/non-interactive", bytes),
@@ -240,7 +252,8 @@ public class RoutexRefreshClient internal constructor(
         connectionData: ConnectionData,
         session: Session? = null,
     ): NonInteractiveResponse<List<Transaction>?> {
-        val body = prepareNonInteractiveTransactions(connectionData, session)
+        val body =
+            prepareNonInteractiveTransactions(connectionData, session, userInSession)
         val bytes = encodeRequestBody(NonInteractiveTransactionsRequest.serializer(), body)
         return readNonInteractiveResponse(
             core.request(ticket, "transactions/non-interactive", bytes),

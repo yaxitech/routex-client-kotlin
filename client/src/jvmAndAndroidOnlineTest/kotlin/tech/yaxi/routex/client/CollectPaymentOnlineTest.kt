@@ -6,10 +6,10 @@ import kotlin.test.assertIs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Tag
-import tech.yaxi.routex.models.AccountIdentifier
 import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.CollectPaymentResult
 import tech.yaxi.routex.models.Credentials
+import tech.yaxi.routex.models.CreditorAccountIdentifier
 import tech.yaxi.routex.models.EncryptedIbanReference
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.tickets.CollectPaymentField
@@ -24,7 +24,7 @@ class CollectPaymentEncryptedIbanOnlineTest {
             val ticket =
                 OnlineTestSupport.ticketIssuer.collectPayment(
                     amount = Amount("100", "EUR"),
-                    creditorAccount = AccountIdentifier.Iban("DE79430609671288143100"),
+                    creditorAccount = CreditorAccountIdentifier.Iban("DE79430609671288143100"),
                     creditorName = "YAXI GmbH",
                     remittance = "Sign-up fee routex 123456789",
                     fields = listOf(CollectPaymentField.DebtorIban, CollectPaymentField.DebtorName),

@@ -4,6 +4,7 @@ import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
+import kotlin.test.assertNotNull
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Tag
@@ -32,10 +33,7 @@ class BalancesOnlineTest {
                         ),
                     accounts =
                         listOf(
-                            AccountReference(
-                                iban = "DE02120300000000202051",
-                                currency = "EUR",
-                            ),
+                            AccountReference.iban("DE02120300000000202051", "EUR"),
                         ),
                 )
             val payload = assertIs<Response.Result<BalancesResult>>(response).authenticated.decodeUnverified()
@@ -45,7 +43,7 @@ class BalancesOnlineTest {
             assertEquals(1, accountBalances.size)
             val entry = accountBalances[0]
             assertEquals(
-                AccountReference("DE02120300000000202051", "EUR"),
+                AccountReference.iban("DE02120300000000202051", "EUR"),
                 entry.account,
             )
             assertEquals(2, entry.balances.size)
@@ -59,5 +57,7 @@ class BalancesOnlineTest {
             assertEquals("EUR", available.currency)
             assertEquals(BalanceType.AVAILABLE, available.balanceType)
             assertEquals(false, available.creditLimitIncluded)
+            assertNotNull(booked.dateTime)
+            assertNotNull(available.dateTime)
         }
 }

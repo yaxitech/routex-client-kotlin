@@ -24,7 +24,7 @@ internal data class SettleResult(
 internal object KeySettlement {
     private val json: Json = Json { ignoreUnknownKeys = true }
 
-    fun verify(
+    suspend fun verify(
         responseBytes: ByteArray,
         clientKeys: ChaChaBoxKeys,
         vcekRoots: VcekRootStore,

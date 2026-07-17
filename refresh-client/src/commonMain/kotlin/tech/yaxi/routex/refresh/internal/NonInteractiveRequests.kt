@@ -12,17 +12,20 @@ import tech.yaxi.routex.models.NonInteractiveResponse
 import tech.yaxi.routex.models.NonInteractiveTransactionsRequest
 import tech.yaxi.routex.models.RoutexJson
 import tech.yaxi.routex.models.Session
+import tech.yaxi.routex.models.UserInSession
 import tech.yaxi.routex.settlement.RoutexClientError
 
 internal fun prepareNonInteractiveAccounts(
     connectionData: ConnectionData,
     session: Session?,
+    userInSession: UserInSession?,
     fields: List<AccountField<*>>,
     filter: AccountFilter?,
 ): NonInteractiveAccountsRequest =
     NonInteractiveAccountsRequest(
         connectionData = connectionData,
         session = session,
+        userInSession = userInSession,
         fields = fields,
         filter = filter,
     )
@@ -30,21 +33,25 @@ internal fun prepareNonInteractiveAccounts(
 internal fun prepareNonInteractiveBalances(
     connectionData: ConnectionData,
     session: Session?,
+    userInSession: UserInSession?,
     accounts: List<AccountReference>,
 ): NonInteractiveBalancesRequest =
     NonInteractiveBalancesRequest(
         connectionData = connectionData,
         session = session,
+        userInSession = userInSession,
         accounts = accounts,
     )
 
 internal fun prepareNonInteractiveTransactions(
     connectionData: ConnectionData,
     session: Session?,
+    userInSession: UserInSession?,
 ): NonInteractiveTransactionsRequest =
     NonInteractiveTransactionsRequest(
         connectionData = connectionData,
         session = session,
+        userInSession = userInSession,
     )
 
 internal fun <T> readNonInteractiveResponse(

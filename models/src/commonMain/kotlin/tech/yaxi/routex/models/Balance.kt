@@ -1,6 +1,7 @@
 package tech.yaxi.routex.models
 
 import com.ionspin.kotlin.bignum.decimal.BigDecimal
+import kotlin.time.Instant
 import kotlinx.serialization.Serializable
 
 /**
@@ -12,6 +13,7 @@ import kotlinx.serialization.Serializable
  * @property balanceType Kind of balance (booked / available / expected).
  * @property creditLimitIncluded Whether [amount][tech.yaxi.routex.models.Balance.amount]
  *   includes any associated credit line, when known.
+ * @property dateTime
  */
 @ConsistentCopyVisibility
 @Serializable
@@ -21,6 +23,7 @@ public data class Balance internal constructor(
     public val currency: String,
     public val balanceType: BalanceType,
     public val creditLimitIncluded: Boolean? = null,
+    public val dateTime: Instant? = null,
 )
 
 /** Per-account container holding zero or more typed balances. */

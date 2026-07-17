@@ -1,5 +1,6 @@
 package tech.yaxi.routex.models
 
+import kotlin.jvm.JvmOverloads
 import kotlinx.serialization.Serializable
 
 /**

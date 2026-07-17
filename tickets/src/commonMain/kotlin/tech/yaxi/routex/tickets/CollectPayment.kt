@@ -3,8 +3,8 @@ package tech.yaxi.routex.tickets
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
-import tech.yaxi.routex.models.AccountIdentifier
 import tech.yaxi.routex.models.Amount
+import tech.yaxi.routex.models.CreditorAccountIdentifier
 import tech.yaxi.routex.models.Ticket
 
 /**
@@ -23,6 +23,14 @@ public enum class CollectPaymentField {
     DebtorName,
 
     /**
+     * Encrypted debtor name, suitable for an opaque handoff back to
+     * the caller's backend. See
+     * [Opaque Data](https://docs.yaxi.tech/opaque-data.html).
+     */
+    @SerialName("encryptedDebtorName")
+    EncryptedDebtorName,
+
+    /**
      * Encrypted IBAN of the debtor account, suitable for an opaque handoff back to
      * the caller's backend. See
      * [Opaque Data](https://docs.yaxi.tech/opaque-data.html).
@@ -34,7 +42,7 @@ public enum class CollectPaymentField {
 @Serializable
 internal data class CollectPaymentTicketData(
     val amount: Amount,
-    val creditorAccount: AccountIdentifier,
+    val creditorAccount: CreditorAccountIdentifier,
     val creditorName: String,
     val remittance: String,
     val instant: Boolean? = null,

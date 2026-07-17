@@ -7,6 +7,12 @@ plugins {
     base
 }
 
+allprojects {
+    plugins.withType<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsPlugin> {
+        the<org.jetbrains.kotlin.gradle.targets.js.nodejs.NodeJsEnvSpec>().download = false
+    }
+}
+
 // Aggregate Dokka HTML across all published modules so KDoc references can
 // cross module boundaries. Per-module `dokkaGenerateHtml` (used by each
 // module's javadocJar) still runs independently.
@@ -32,7 +38,7 @@ val demoBuildFiles =
 
 val routexVersion: Provider<String> = routexClientVersion()
 
-val demoAssemble by tasks.registering(Exec::class) {
+val refreshClientDemoAssemble by tasks.registering(Exec::class) {
     description = "Compiles refresh-client-demo against the in-repo :client / :refresh-client."
     group = "verification"
     workingDir = demoDir.asFile
@@ -62,7 +68,7 @@ val demoOnlineTest by tasks.registering(Exec::class) {
     }
 }
 
-val checkDemoVersionPin by tasks.registering {
+val checkRefreshClientDemoVersionPin by tasks.registering {
     description = "Asserts refresh-client-demo's hardcoded routex coordinate version matches the parent's."
     group = "verification"
     // Bind script-scope state into task-local vals so the doLast closure stays
@@ -112,10 +118,10 @@ val demoZip by tasks.registering(Zip::class) {
         // strip it on extract.
         filesMatching("gradlew") { permissions { unix("0755") } }
     }
-    dependsOn(checkDemoVersionPin)
+    dependsOn(checkRefreshClientDemoVersionPin)
 }
 
-val checkDemoWrapperPin by tasks.registering {
+val checkRefreshClientDemoWrapperPin by tasks.registering {
     description = "Asserts refresh-client-demo's Gradle wrapper distribution matches the parent's."
     group = "verification"
     val parentWrapper = layout.projectDirectory.file("gradle/wrapper/gradle-wrapper.properties").asFile
@@ -141,5 +147,5 @@ val checkDemoWrapperPin by tasks.registering {
 }
 
 tasks.named("check") {
-    dependsOn(demoAssemble, checkDemoVersionPin, checkDemoWrapperPin)
+    dependsOn(refreshClientDemoAssemble, checkRefreshClientDemoVersionPin, checkRefreshClientDemoWrapperPin)
 }

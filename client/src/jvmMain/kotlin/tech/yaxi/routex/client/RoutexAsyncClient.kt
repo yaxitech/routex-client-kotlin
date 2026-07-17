@@ -261,7 +261,7 @@ public class RoutexAsyncClient private constructor(
      *     .collectPayment(
      *         ticket,
      *         credentials,
-     *         new AccountReference("DE02120300000000202051", null))
+     *         new IbanReference("DE02120300000000202051", null))
      *     .thenAccept(
      *         response -> {
      *           // handle Result / Dialog / Redirect on response
@@ -269,8 +269,7 @@ public class RoutexAsyncClient private constructor(
      * ```
      *
      * @param account Optional debtor account to collect from. Pass a plain
-     *   [AccountReference][tech.yaxi.routex.models.AccountReference] (e.g. one
-     *   returned by the accounts service) directly, or an
+     *   [IbanReference][tech.yaxi.routex.models.IbanReference], or an
      *   [EncryptedIbanReference][tech.yaxi.routex.models.EncryptedIbanReference]
      *   for a ciphertext your backend produced with its API secret following the
      *   [Opaque Data](https://docs.yaxi.tech/opaque-data.html) protocol so the
@@ -324,7 +323,7 @@ public class RoutexAsyncClient private constructor(
         credentials: Credentials,
         product: PaymentProduct,
         details: List<TransferDetails>,
-        debtorAccount: AccountReference? = null,
+        debtorAccount: DebtorAccountReference? = null,
         debtorName: String? = null,
         requestedExecutionDate: IsoDateTimeOrDate? = null,
         session: Session? = null,

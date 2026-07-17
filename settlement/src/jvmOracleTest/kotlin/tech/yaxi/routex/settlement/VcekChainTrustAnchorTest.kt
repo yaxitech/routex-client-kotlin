@@ -9,6 +9,7 @@ import java.util.Base64
 import java.util.Date
 import kotlin.test.Test
 import kotlin.test.assertFailsWith
+import kotlinx.coroutines.test.runTest
 import org.bouncycastle.asn1.ASN1Encodable
 import org.bouncycastle.asn1.ASN1Integer
 import org.bouncycastle.asn1.ASN1ObjectIdentifier
@@ -30,31 +31,32 @@ import org.bouncycastle.operator.jcajce.JcaContentSignerBuilder
  */
 class VcekChainTrustAnchorTest {
     @Test
-    fun rejectsWellFormedChainUnderUntrustedSelfSignedRoot() {
-        val rootName = X500Name("CN=Rogue Root")
-        val rootKeys = rsaKeyPair()
-        val root =
-            certificate(
-                subject = rootName,
-                issuer = rootName,
-                subjectKey = rootKeys.public,
-                signingKey = rootKeys.private,
-            )
+    fun rejectsWellFormedChainUnderUntrustedSelfSignedRoot() =
+        runTest {
+            val rootName = X500Name("CN=Rogue Root")
+            val rootKeys = rsaKeyPair()
+            val root =
+                certificate(
+                    subject = rootName,
+                    issuer = rootName,
+                    subjectKey = rootKeys.public,
+                    signingKey = rootKeys.private,
+                )
 
-        val leafKeys = rsaKeyPair()
-        val leaf =
-            certificate(
-                subject = X500Name("CN=Rogue Leaf"),
-                issuer = rootName,
-                subjectKey = leafKeys.public,
-                signingKey = rootKeys.private,
-                extensions = amdVcekExtensions(),
-            )
+            val leafKeys = rsaKeyPair()
+            val leaf =
+                certificate(
+                    subject = X500Name("CN=Rogue Leaf"),
+                    issuer = rootName,
+                    subjectKey = leafKeys.public,
+                    signingKey = rootKeys.private,
+                    extensions = amdVcekExtensions(),
+                )
 
-        assertFailsWith<VcekChainError.ChainBroken> {
-            VcekChainOps.verify(pem(leaf) + pem(root), VcekRootStore.Amd)
+            assertFailsWith<VcekChainError.ChainBroken> {
+                VcekChainOps.verify(pem(leaf) + pem(root), VcekRootStore.Amd)
+            }
         }
-    }
 
     /** Product name and the four required TCB SPLs, as a genuine Milan VCEK carries. */
     private fun amdVcekExtensions(): List<Pair<String, ASN1Encodable>> =

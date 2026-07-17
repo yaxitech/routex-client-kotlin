@@ -15,8 +15,8 @@ import kotlin.time.Instant
  * subclass, which layers AMD-specific typed accessors over the generic extension
  * readers below.
  *
- * Implementations decode the X.509 wire format with the platform's native parser
- * (BouncyCastle on JVM/Android, `Security` framework on Apple); commonMain never sees
+ * Implementations decode the X.509 wire format with a platform-specific parser
+ * (BouncyCastle on JVM/Android, `@peculiar/x509` on JS, `Security` framework on Apple); commonMain never sees
  * raw DER and never embeds a hand-rolled ASN.1 decoder.
  */
 internal expect open class X509Certificate {
@@ -56,7 +56,7 @@ internal expect open class X509Certificate {
      * [VcekCertificateError.SignatureInvalid] on mismatch. The self-signed root passes
      * itself as the issuer.
      */
-    fun verifySignatureBy(issuer: X509Certificate)
+    suspend fun verifySignatureBy(issuer: X509Certificate)
 
     /**
      * Decode the value of the X.509v3 extension at [oid] as a DER `IA5String`. Returns

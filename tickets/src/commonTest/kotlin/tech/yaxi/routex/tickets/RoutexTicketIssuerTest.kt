@@ -16,10 +16,10 @@ import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
-import tech.yaxi.routex.models.AccountIdentifier
 import tech.yaxi.routex.models.AccountReference
 import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.Base64UrlNoPad
+import tech.yaxi.routex.models.CreditorAccountIdentifier
 import tech.yaxi.routex.models.RoutexJson
 import tech.yaxi.routex.tickets.internal.hmacSha256
 
@@ -53,7 +53,7 @@ class RoutexTicketIssuerTest {
         val raw =
             newIssuer()
                 .transactions(
-                    account = AccountReference("DE02120300000000202051", currency = "EUR"),
+                    account = AccountReference.iban("DE02120300000000202051", "EUR"),
                     range = Range.Period(LocalDate(2026, 1, 1)),
                 ).raw
         val ticketData = decodeTicket(raw).second.ticketData
@@ -71,7 +71,7 @@ class RoutexTicketIssuerTest {
         val raw =
             newIssuer()
                 .transactions(
-                    account = AccountReference("DE02120300000000202051"),
+                    account = AccountReference.iban("DE02120300000000202051"),
                     range = Range.Reference("abc"),
                     webhook = "https://example.invalid/hook",
                 ).raw
@@ -94,7 +94,7 @@ class RoutexTicketIssuerTest {
             newIssuer()
                 .collectPayment(
                     amount = Amount("100.00", "EUR"),
-                    creditorAccount = AccountIdentifier.Iban("DE79430609671288143100"),
+                    creditorAccount = CreditorAccountIdentifier.Iban("DE79430609671288143100"),
                     creditorName = "YAXI GmbH",
                     remittance = "Sign-up fee routex 123456789",
                 ).raw
@@ -116,7 +116,7 @@ class RoutexTicketIssuerTest {
             newIssuer()
                 .collectPayment(
                     amount = Amount("1.00", "EUR"),
-                    creditorAccount = AccountIdentifier.Iban("DE79430609671288143100"),
+                    creditorAccount = CreditorAccountIdentifier.Iban("DE79430609671288143100"),
                     creditorName = "YAXI GmbH",
                     remittance = "fee",
                     instant = false,
@@ -192,7 +192,7 @@ class RoutexTicketIssuerTest {
     @Test
     fun blankServiceInputsAreRejected() {
         val issuer = newIssuer()
-        val creditor = AccountIdentifier.Iban("DE79430609671288143100")
+        val creditor = CreditorAccountIdentifier.Iban("DE79430609671288143100")
         assertFailsWith<IllegalArgumentException> {
             issuer.collectPayment(Amount("1.00", "EUR"), creditor, creditorName = " ", remittance = "fee")
         }
@@ -201,7 +201,7 @@ class RoutexTicketIssuerTest {
         }
         assertFailsWith<IllegalArgumentException> {
             issuer.transactions(
-                account = AccountReference("DE02120300000000202051"),
+                account = AccountReference.iban("DE02120300000000202051"),
                 range = Range.Reference("abc"),
                 webhook = " ",
             )

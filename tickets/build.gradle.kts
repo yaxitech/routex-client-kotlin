@@ -6,15 +6,17 @@ plugins {
     kotlin("plugin.serialization")
 }
 
-// JVM-only today; the module is KMP-shaped so future Apple / native actuals can plug into
-// the existing `hmacSha256` expect declaration without restructuring.
-
 kotlin {
     compilerOptions {
         optIn.add("tech.yaxi.routex.models.InternalRoutexApi")
     }
 
     jvm()
+
+    js(IR) {
+        nodejs()
+        useEsModules()
+    }
 
     sourceSets {
         commonMain {
@@ -23,6 +25,11 @@ kotlin {
                 api(libs.kotlinx.datetime)
                 api(libs.kotlinx.serialization.core)
                 implementation(libs.kotlinx.serialization.json)
+            }
+        }
+        jsMain {
+            dependencies {
+                implementation(npm("@noble/hashes", "^2.0.0"))
             }
         }
         commonTest {

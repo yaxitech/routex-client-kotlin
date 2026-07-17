@@ -3,6 +3,7 @@
 package tech.yaxi.routex.models
 
 import kotlin.io.encoding.Base64
+import kotlin.jvm.JvmStatic
 import kotlin.uuid.Uuid
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.Serializable

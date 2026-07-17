@@ -10,6 +10,11 @@ kotlin {
         namespace = "tech.yaxi.routex.transport"
     }
 
+    js(IR) {
+        nodejs()
+        useEsModules()
+    }
+
     sourceSets {
         // CIO works on JVM, Android, and Kotlin/Native per Ktor docs, so the JVM
         // and Android targets share a single `defaultHttpTransport()` actual.
@@ -31,6 +36,11 @@ kotlin {
                 // have to round-trip through string concatenation; the engine modules
                 // (CIO et al.) stay on `implementation(...)` and remain swappable.
                 api(libs.ktor.client.core)
+            }
+        }
+        jsMain {
+            dependencies {
+                implementation(libs.ktor.client.js)
             }
         }
         commonTest {

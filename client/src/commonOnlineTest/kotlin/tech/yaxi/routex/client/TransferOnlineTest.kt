@@ -7,9 +7,9 @@ import kotlin.test.assertIs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Tag
-import tech.yaxi.routex.models.AccountIdentifier
 import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.Credentials
+import tech.yaxi.routex.models.CreditorAccountIdentifier
 import tech.yaxi.routex.models.PaymentProduct
 import tech.yaxi.routex.models.PaymentStatus
 import tech.yaxi.routex.models.Response
@@ -38,7 +38,7 @@ class TransferOnlineTest {
                         listOf(
                             TransferDetails(
                                 amount = Amount(currency = "EUR", amount = BigDecimal.fromInt(1)),
-                                creditorAccount = AccountIdentifier.Iban("NL58YAXI1234567890"),
+                                creditorAccount = CreditorAccountIdentifier.Iban("NL58YAXI1234567890"),
                                 creditorName = "creditor",
                             ),
                         ),

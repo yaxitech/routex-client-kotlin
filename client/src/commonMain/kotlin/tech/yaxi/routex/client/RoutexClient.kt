@@ -2,6 +2,7 @@ package tech.yaxi.routex.client
 
 import io.ktor.http.Url
 import kotlin.io.encoding.Base64
+import kotlin.jvm.JvmOverloads
 import kotlinx.serialization.KSerializer
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -158,7 +159,7 @@ public class RoutexClient internal constructor(
      *
      * @param baseUrl Base URL of the YAXI API. Defaults to the production endpoint.
      * @param httpTransport HTTP transport. Defaults to a Ktor engine selected per
-     *   platform (CIO on JVM/Android, Darwin on Apple targets).
+     *   platform (CIO on JVM/Android, Js on JS/browser, Darwin on Apple targets).
      */
     @JvmOverloads
     public constructor(
@@ -281,8 +282,7 @@ public class RoutexClient internal constructor(
      * payment-initiation flow.
      *
      * @param account Optional debtor account to collect from. Pass a plain
-     *   [AccountReference][tech.yaxi.routex.models.AccountReference] (e.g. one
-     *   returned by the accounts service) directly, or an
+     *   [IbanReference][tech.yaxi.routex.models.IbanReference], or an
      *   [EncryptedIbanReference][tech.yaxi.routex.models.EncryptedIbanReference]
      *   for a ciphertext your backend produced with its API secret following the
      *   [Opaque Data](https://docs.yaxi.tech/opaque-data.html) protocol so the
@@ -349,7 +349,7 @@ public class RoutexClient internal constructor(
         credentials: Credentials,
         product: PaymentProduct,
         details: List<TransferDetails>,
-        debtorAccount: AccountReference? = null,
+        debtorAccount: DebtorAccountReference? = null,
         debtorName: String? = null,
         requestedExecutionDate: IsoDateTimeOrDate? = null,
         session: Session? = null,

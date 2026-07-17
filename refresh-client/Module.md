@@ -13,6 +13,10 @@ The driving difference vs. the interactive client:
   [InterruptError][tech.yaxi.routex.models.InterruptError] is the umbrella signal that the bank wants user input on a non-interactive call (TAN prompt, fresh SCA, anything the interactive client would resolve via `respond*` / `confirm*`).
   Both indicate the caller needs to drive a fresh interactive flow.
 - Only the read services and the discovery endpoints are exposed; payment and transfer flows are inherently interactive and remain on [RoutexClient][tech.yaxi.routex.client.RoutexClient].
+- By default, YAXI assumes a service call happens outside any user session.
+  Banks then typically apply strict limits on how often refreshes may occur; once exceeded, the call typically fails with an [AccessExceeded][tech.yaxi.routex.models.AccessExceeded] error.
+  In contrast, when a refresh happens within a user session, e.g., the user is viewing your app or triggering a manual refresh, these limits generally do not apply.
+  To indicate a user session, pass a [UserInSession][tech.yaxi.routex.models.UserInSession] so YAXI forwards the user's IP to the bank, which prevents that error under normal usage.
 
 See the [RoutexRefreshClient][tech.yaxi.routex.refresh.RoutexRefreshClient] KDoc for the full call-shape description and the expected exceptions (and runnable Kotlin / Java code samples on each anchor method); the per-service reference lives at [Handling sessions](https://docs.yaxi.tech/sessions.html), [Errors](https://docs.yaxi.tech/errors.html).
 

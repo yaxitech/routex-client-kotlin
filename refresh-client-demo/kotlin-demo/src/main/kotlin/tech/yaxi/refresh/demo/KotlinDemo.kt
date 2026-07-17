@@ -5,6 +5,7 @@ package tech.yaxi.refresh.demo
 import kotlinx.coroutines.runBlocking
 import tech.yaxi.routex.client.RoutexClient
 import tech.yaxi.routex.models.AccountField
+import tech.yaxi.routex.models.AccountIdentifier
 import tech.yaxi.routex.models.AccountReference
 import tech.yaxi.routex.models.AccountsResult
 import tech.yaxi.routex.models.Balances
@@ -56,7 +57,7 @@ private suspend fun obtainConnectionData(
                     .decodeUnverified()
                     .data
                     .filter { it.iban != null }
-                    .map { AccountReference(it.iban!!, it.currency) }
+                    .map { AccountReference.iban(it.iban!!, it.currency) }
             RefreshContext(connectionData, refs)
         }
         is Response.Dialog, is Response.Redirect, is Response.RedirectHandle ->
@@ -76,14 +77,18 @@ private suspend fun refreshBalances(
 
 private fun printBalances(balances: Balances) {
     for (perAccount in balances.balances) {
-        val iban = perAccount.account.iban
+        val identifier =
+            when (val id = perAccount.account.id) {
+                is AccountIdentifier.Iban -> id.value
+                is AccountIdentifier.Number -> id.value
+            }
         for (balance in perAccount.balances) {
             println(
                 "%-9s %s %s  (%s)".format(
                     balance.balanceType,
                     balance.amount.toPlainString(),
                     balance.currency,
-                    iban,
+                    identifier,
                 ),
             )
         }

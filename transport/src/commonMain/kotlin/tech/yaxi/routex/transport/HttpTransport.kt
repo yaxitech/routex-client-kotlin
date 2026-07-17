@@ -61,7 +61,7 @@ public data class HttpResponse(
  * issues an [HttpRequest] and returns the corresponding [HttpResponse].
  *
  * The default transport ([defaultHttpTransport]) is a Ktor engine selected per
- * platform (CIO on JVM/Android). Provide a custom implementation when you need a
+ * platform (CIO on JVM/Android, Js on JS/browser). Provide a custom implementation when you need a
  * proxy, mTLS, custom timeouts, or a deterministic fake for tests.
  *
  * Implementations must be safe to invoke concurrently from multiple coroutines:

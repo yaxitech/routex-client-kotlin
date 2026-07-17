@@ -5,7 +5,7 @@ package tech.yaxi.routex.client.samples
 import tech.yaxi.routex.client.RoutexClient
 import tech.yaxi.routex.models.Account
 import tech.yaxi.routex.models.AccountField
-import tech.yaxi.routex.models.AccountIdentifier
+import tech.yaxi.routex.models.CreditorAccountIdentifier
 import tech.yaxi.routex.models.AccountReference
 import tech.yaxi.routex.models.AccountType
 import tech.yaxi.routex.models.AccountsResult
@@ -14,6 +14,7 @@ import tech.yaxi.routex.models.ConfirmationContext
 import tech.yaxi.routex.models.ConnectionId
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.EncryptedIbanReference
+import tech.yaxi.routex.models.IbanReference
 import tech.yaxi.routex.models.DialogInput
 import tech.yaxi.routex.models.InputContext
 import tech.yaxi.routex.models.PaymentProduct
@@ -155,10 +156,7 @@ internal object RoutexClientSamples {
             ticket,
             credentials,
             accounts = listOf(
-                AccountReference(
-                    iban = "NL58YAXI1234567890",
-                    currency = "EUR",
-                )
+                AccountReference.iban("NL58YAXI1234567890", "EUR")
             ),
         )
     }
@@ -181,10 +179,7 @@ internal object RoutexClientSamples {
         client.collectPayment(
             ticket,
             credentials,
-            account = AccountReference(
-                iban = "NL58YAXI1234567890",
-                currency = "EUR",
-            ),
+            account = IbanReference("NL58YAXI1234567890", "EUR"),
         )
     }
 
@@ -217,14 +212,11 @@ internal object RoutexClientSamples {
             details = listOf(
                 TransferDetails(
                     amount = Amount("100.00", "EUR"),
-                    creditorAccount = AccountIdentifier.Iban("NL58YAXI1234567890"),
+                    creditorAccount = CreditorAccountIdentifier.Iban("NL58YAXI1234567890"),
                     creditorName = "John Doe",
                 ),
             ),
-            debtorAccount = AccountReference(
-                iban = "NL58YAXI1234567890",
-                currency = "EUR",
-            ),
+            debtorAccount = IbanReference("NL58YAXI1234567890", "EUR"),
             debtorName = "Debtor",
         )
     }

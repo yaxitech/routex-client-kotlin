@@ -26,7 +26,7 @@ internal actual open class X509Certificate internal constructor(
     actual val issuerName: String
         get() = delegate.issuerX500Principal.getName(X500Principal.RFC2253)
 
-    actual fun verifySignatureBy(issuer: X509Certificate) {
+    actual suspend fun verifySignatureBy(issuer: X509Certificate) {
         try {
             delegate.verify(issuer.delegate.publicKey, BouncyCastleProviderHolder.provider)
         } catch (e: Exception) {

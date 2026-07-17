@@ -1,5 +1,6 @@
 package tech.yaxi.routex.models
 
+import kotlin.jvm.JvmOverloads
 import kotlinx.serialization.Serializable
 
 /** Request body for the interactive accounts service. */
@@ -45,7 +46,7 @@ public data class TransferServiceRequest(
     public val session: Session? = null,
     public val recurringConsents: Boolean = false,
     public val product: PaymentProduct,
-    public val debtorAccount: AccountReference? = null,
+    public val debtorAccount: DebtorAccountReference? = null,
     public val debtorName: String? = null,
     public val requestedExecutionDate: IsoDateTimeOrDate? = null,
     public val details: List<TransferDetails>,
@@ -69,7 +70,7 @@ public data class TransferDetails
     @JvmOverloads
     constructor(
         public val amount: Amount,
-        public val creditorAccount: AccountIdentifier,
+        public val creditorAccount: CreditorAccountIdentifier,
         public val creditorName: String,
         public val endToEndIdentification: String? = null,
         public val creditorAgentBic: String? = null,

@@ -76,7 +76,7 @@ internal class VcekChainVerifyResult internal constructor(
 )
 
 internal object VcekChainOps {
-    fun verify(
+    suspend fun verify(
         vcekChainPem: String,
         rootStore: VcekRootStore,
         clock: Clock = Clock.System,
@@ -170,7 +170,7 @@ internal object VcekChainOps {
     }
 
     // Last entry is a trusted root; verify each link beneath it.
-    private fun verifyPathSignatures(path: List<X509Certificate>) {
+    private suspend fun verifyPathSignatures(path: List<X509Certificate>) {
         for (i in 0 until path.size - 1) {
             verifyOne(path[i], path[i + 1], "chain[$i]")
         }
@@ -226,7 +226,7 @@ internal object VcekChainOps {
         }
     }
 
-    private fun verifyOne(
+    private suspend fun verifyOne(
         subject: X509Certificate,
         issuer: X509Certificate,
         label: String,
