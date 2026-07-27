@@ -38,7 +38,7 @@ val demoBuildFiles =
 
 val routexVersion: Provider<String> = routexClientVersion()
 
-val refreshClientDemoAssemble by tasks.registering(Exec::class) {
+val refreshClientDemoAssemble = tasks.register<Exec>("refreshClientDemoAssemble") {
     description = "Compiles refresh-client-demo against the in-repo :client / :refresh-client."
     group = "verification"
     workingDir = demoDir.asFile
@@ -46,7 +46,7 @@ val refreshClientDemoAssemble by tasks.registering(Exec::class) {
     args(":kotlin-demo:assemble", ":java-demo:assemble", "-Ptech.yaxi.routex.demo.use_local=true")
 }
 
-val demoOnlineTest by tasks.registering(Exec::class) {
+val demoOnlineTest = tasks.register<Exec>("demoOnlineTest") {
     description = "Runs the refresh-client-demo smoke tests against the live YAXI API."
     group = "verification"
     workingDir = demoDir.asFile
@@ -68,7 +68,7 @@ val demoOnlineTest by tasks.registering(Exec::class) {
     }
 }
 
-val checkRefreshClientDemoVersionPin by tasks.registering {
+val checkRefreshClientDemoVersionPin = tasks.register("checkRefreshClientDemoVersionPin") {
     description = "Asserts refresh-client-demo's hardcoded routex coordinate version matches the parent's."
     group = "verification"
     // Bind script-scope state into task-local vals so the doLast closure stays
@@ -98,7 +98,7 @@ val checkRefreshClientDemoVersionPin by tasks.registering {
     }
 }
 
-val demoZip by tasks.registering(Zip::class) {
+val demoZip = tasks.register<Zip>("demoZip") {
     description = "Produces a self-contained zip of refresh-client-demo."
     group = "distribution"
     archiveBaseName.set("refresh-client-demo")
@@ -121,7 +121,7 @@ val demoZip by tasks.registering(Zip::class) {
     dependsOn(checkRefreshClientDemoVersionPin)
 }
 
-val checkRefreshClientDemoWrapperPin by tasks.registering {
+val checkRefreshClientDemoWrapperPin = tasks.register("checkRefreshClientDemoWrapperPin") {
     description = "Asserts refresh-client-demo's Gradle wrapper distribution matches the parent's."
     group = "verification"
     val parentWrapper = layout.projectDirectory.file("gradle/wrapper/gradle-wrapper.properties").asFile

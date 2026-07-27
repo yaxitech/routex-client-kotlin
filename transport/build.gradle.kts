@@ -20,7 +20,7 @@ kotlin {
         // and Android targets share a single `defaultHttpTransport()` actual.
         // The intermediate source set keeps the door open for an Apple-side
         // actual (Ktor Darwin) when those targets land.
-        val jvmAndAndroidMain by creating {
+        val jvmAndAndroidMain = create("jvmAndAndroidMain") {
             dependsOn(commonMain.get())
             dependencies {
                 implementation(libs.ktor.client.cio)

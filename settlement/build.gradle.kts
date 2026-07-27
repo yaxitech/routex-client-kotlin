@@ -20,7 +20,7 @@ val commonOnlineTestSrc: String = "src/commonOnlineTest/kotlin"
 // parameter. The constant lives in `:settlement` because [RoutexClientCore] (its single
 // consumer) lives here.
 val generatedVersionDir = layout.buildDirectory.dir("generated/routex/commonMain/kotlin")
-val generateRoutexVersion by tasks.registering {
+val generateRoutexVersion = tasks.register("generateRoutexVersion") {
     val versionValue = providers.provider { project.version.toString() }
     val outputDir = generatedVersionDir
     inputs.property("version", versionValue)
@@ -71,7 +71,7 @@ kotlin {
     }
 
     sourceSets {
-        val jvmAndAndroidMain by creating {
+        val jvmAndAndroidMain = create("jvmAndAndroidMain") {
             dependsOn(commonMain.get())
             dependencies {
                 implementation(libs.bouncycastle.prov)
@@ -90,7 +90,7 @@ kotlin {
             }
         }
 
-        val jsMain by getting {
+        val jsMain = getByName("jsMain") {
             dependencies {
                 // npm versions are pinned to match js/settlement/package.json.
                 implementation(npm("@noble/ciphers", "^2.0.0"))
@@ -160,7 +160,7 @@ tasks.named<Test>("jvmTest") {
     }
 }
 
-val jvmOnlineTest by tasks.registering(Test::class) {
+val jvmOnlineTest = tasks.register<Test>("jvmOnlineTest") {
     description = "Runs online integration tests against the live YAXI API (opt-in)."
     group = "verification"
     val jvmTest = tasks.named<Test>("jvmTest").get()
