@@ -30,15 +30,10 @@ dependencies {
 // `tech.yaxi.routex.demo.use_local` toggle gates the substitution.
 val demoDir = layout.projectDirectory.dir("refresh-client-demo")
 val demoWrapper = demoDir.file("gradlew").asFile.absolutePath
-val demoBuildFiles =
-    listOf(
-        demoDir.file("kotlin-demo/build.gradle.kts").asFile,
-        demoDir.file("java-demo/build.gradle.kts").asFile,
-    )
 
 val routexVersion: Provider<String> = routexClientVersion()
 
-val refreshClientDemoAssemble by tasks.registering(Exec::class) {
+val refreshClientDemoAssemble = tasks.register<Exec>("refreshClientDemoAssemble") {
     description = "Compiles refresh-client-demo against the in-repo :client / :refresh-client."
     group = "verification"
     workingDir = demoDir.asFile
@@ -46,7 +41,7 @@ val refreshClientDemoAssemble by tasks.registering(Exec::class) {
     args(":kotlin-demo:assemble", ":java-demo:assemble", "-Ptech.yaxi.routex.demo.use_local=true")
 }
 
-val demoOnlineTest by tasks.registering(Exec::class) {
+tasks.register<Exec>("demoOnlineTest") {
     description = "Runs the refresh-client-demo smoke tests against the live YAXI API."
     group = "verification"
     workingDir = demoDir.asFile
@@ -68,37 +63,46 @@ val demoOnlineTest by tasks.registering(Exec::class) {
     }
 }
 
-val checkRefreshClientDemoVersionPin by tasks.registering {
-    description = "Asserts refresh-client-demo's hardcoded routex coordinate version matches the parent's."
+// Pin against the canonical base, not the SNAPSHOT-suffixed publish version:
+// the demos always ship against the latest released coordinate.
+val releasedCoordinateFiles =
+    listOf(
+        layout.projectDirectory.file("README.md"),
+        demoDir.file("kotlin-demo/build.gradle.kts"),
+        demoDir.file("java-demo/build.gradle.kts"),
+    ).map { it.asFile }
+
+val checkReleasedCoordinatePins = tasks.register("checkReleasedCoordinatePins") {
+    description = "Asserts every released routex coordinate matches tech.yaxi.routex.version.base."
     group = "verification"
     // Bind script-scope state into task-local vals so the doLast closure stays
-    // serializable for the configuration cache. Pin against the canonical base
-    // (not the SNAPSHOT-suffixed publish version) because the demo always ships
-    // against the latest released Maven Central coordinate.
+    // serializable for the configuration cache.
     val expectedVersion = providers.gradleProperty("tech.yaxi.routex.version.base")
-    val files = demoBuildFiles
+    val files = releasedCoordinateFiles
     val rootDirPath = rootDir
     inputs.property("parentBaseVersion", expectedVersion)
     files.forEach { inputs.file(it) }
     doLast {
         val expected = expectedVersion.get()
-        val coordsRegex = Regex("""tech\.yaxi:routex(?:-refresh-client|-client|-tickets):([^"]+)""")
-        val mismatches =
+        val coordsRegex = Regex("""tech\.yaxi:routex-[a-z-]+:([^"]+)""")
+        val problems =
             files.flatMap { file ->
-                coordsRegex.findAll(file.readText())
-                    .map { it.groupValues[1] }
-                    .filter { it != expected }
-                    .map { actual -> "${file.relativeTo(rootDirPath)}: $actual (expected $expected)" }
-                    .toList()
+                val name = file.relativeTo(rootDirPath)
+                val found = coordsRegex.findAll(file.readText()).map { it.groupValues[1] }.toList()
+                if (found.isEmpty()) {
+                    listOf("$name: no routex coordinate found")
+                } else {
+                    found.filter { it != expected }.map { "$name: $it (expected $expected)" }
+                }
             }
-        check(mismatches.isEmpty()) {
-            "refresh-client-demo version pin out of sync with tech.yaxi.routex.version.base:\n" +
-                mismatches.joinToString("\n") { "  $it" }
+        check(problems.isEmpty()) {
+            "released routex coordinate out of sync with tech.yaxi.routex.version.base:\n" +
+                problems.joinToString("\n") { "  $it" }
         }
     }
 }
 
-val demoZip by tasks.registering(Zip::class) {
+tasks.register<Zip>("demoZip") {
     description = "Produces a self-contained zip of refresh-client-demo."
     group = "distribution"
     archiveBaseName.set("refresh-client-demo")
@@ -118,10 +122,10 @@ val demoZip by tasks.registering(Zip::class) {
         // strip it on extract.
         filesMatching("gradlew") { permissions { unix("0755") } }
     }
-    dependsOn(checkRefreshClientDemoVersionPin)
+    dependsOn(checkReleasedCoordinatePins)
 }
 
-val checkRefreshClientDemoWrapperPin by tasks.registering {
+val checkRefreshClientDemoWrapperPin = tasks.register("checkRefreshClientDemoWrapperPin") {
     description = "Asserts refresh-client-demo's Gradle wrapper distribution matches the parent's."
     group = "verification"
     val parentWrapper = layout.projectDirectory.file("gradle/wrapper/gradle-wrapper.properties").asFile
@@ -147,5 +151,5 @@ val checkRefreshClientDemoWrapperPin by tasks.registering {
 }
 
 tasks.named("check") {
-    dependsOn(refreshClientDemoAssemble, checkRefreshClientDemoVersionPin, checkRefreshClientDemoWrapperPin)
+    dependsOn(refreshClientDemoAssemble, checkReleasedCoordinatePins, checkRefreshClientDemoWrapperPin)
 }

@@ -35,7 +35,7 @@ kotlin {
 
     jvm()
 
-    js(IR) {
+    js {
         nodejs()
         useEsModules()
     }
@@ -145,7 +145,7 @@ tasks.named<Test>("jvmTest") {
     }
 }
 
-val jvmOnlineTest by tasks.registering(Test::class) {
+tasks.register<Test>("jvmOnlineTest") {
     description = "Runs online integration tests against the live YAXI API (opt-in)."
     group = "verification"
     val jvmTest = tasks.named<Test>("jvmTest").get()

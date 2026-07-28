@@ -1,5 +1,11 @@
 # Changelog
 
+## [0.6.1] - 2026-07-28
+
+### Changed
+
+- Updated the dependencies that reach consumers: Kotlin 2.4.10, Ktor 3.5.1, kotlinx-coroutines 1.11.0, kotlinx-datetime 0.8.0, and, at runtime on JVM and Android, BouncyCastle 1.85; kotlinx-datetime is pre-1.0 and breaks between minors, so a consumer pinned to 0.7.1 resolves up to 0.8.0.
+
 ## [0.6.0] - 2026-07-16
 
 ### Added

@@ -16,7 +16,7 @@ kotlin {
         namespace = "tech.yaxi.routex.models"
     }
 
-    js(IR) {
+    js {
         nodejs()
         useEsModules()
     }
