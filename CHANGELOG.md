@@ -1,5 +1,15 @@
 # Changelog
 
+## [0.7.0] - 2026-08-02
+
+### Added
+
+- `ConnectionInfo.labels`
+
+### Security
+
+- Reject attestation reports whose guest policy allows migration to another host.
+
 ## [0.6.1] - 2026-07-28
 
 ### Changed

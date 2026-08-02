@@ -21,6 +21,8 @@ internal sealed class ReportVerificationError(
 
     class DebugEnabled : ReportVerificationError("debug mode is enabled in guest policy")
 
+    class MigrationAgentAllowed : ReportVerificationError("guest policy allows a migration agent")
+
     class VmplTooHigh(
         val vmpl: Long,
     ) : ReportVerificationError("unexpected VMPL $vmpl (must be <= 3)")
@@ -133,6 +135,9 @@ internal object ReportVerifier {
         }
         if (report.policy.debugAllowed) {
             throw ReportVerificationError.DebugEnabled()
+        }
+        if (report.policy.migrateMaAllowed) {
+            throw ReportVerificationError.MigrationAgentAllowed()
         }
         if (report.vmpl > 3L) {
             throw ReportVerificationError.VmplTooHigh(report.vmpl)

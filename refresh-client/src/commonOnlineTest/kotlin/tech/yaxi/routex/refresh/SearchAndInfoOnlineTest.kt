@@ -6,6 +6,7 @@ import kotlin.test.assertNotNull
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
 import org.junit.jupiter.api.Tag
+import tech.yaxi.routex.models.ConnectionId
 import tech.yaxi.routex.models.ConnectionInfo
 import tech.yaxi.routex.models.SearchFilter
 
@@ -31,6 +32,7 @@ class SearchAndInfoOnlineTest {
         assertEquals("yaxi", info.logoId)
         assertEquals(expectedBics, info.bics)
         assertEquals(expectedBankCodes, info.bankCodes)
+        assertEquals(emptyList(), info.labels)
     }
 
     @Test
@@ -54,6 +56,19 @@ class SearchAndInfoOnlineTest {
                     connectionId = OnlineTestSupport.DEMO_CONNECTION_ID,
                 )
             assertDemoConnectionInfo(demoInfo, expectedBics = emptyList(), expectedBankCodes = emptyList())
+        }
+
+    @Test
+    fun fintsConnectionLabels() =
+        runTest {
+            // GLS Gemeinschaftsbank is served via FinTS, so it carries the "fints" label.
+            val info =
+                routexRefreshClient.info(
+                    ticket = accountsTicket,
+                    connectionId = ConnectionId("connection-9e5b1bab-e7de-4274-85f5-49f75f9527c4"),
+                )
+            assertEquals("GLS Gemeinschaftsbank", info.displayName)
+            assertEquals(listOf("fints"), info.labels)
         }
 
     @Test

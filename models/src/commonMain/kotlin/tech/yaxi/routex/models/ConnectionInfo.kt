@@ -38,6 +38,7 @@ public data class CredentialsModel internal constructor(
  *   as part of a search.
  * @property bankCodes National bank codes (as used in IBANs). Only populated when
  *   explicitly requested as part of a search.
+ * @property labels Labels categorizing the connection (e.g. "beta", "fints").
  */
 @ConsistentCopyVisibility
 @Serializable
@@ -52,4 +53,5 @@ public data class ConnectionInfo internal constructor(
     public val logoId: String,
     public val bics: List<String>? = null,
     public val bankCodes: List<String>? = null,
+    public val labels: List<String> = emptyList(),
 )
