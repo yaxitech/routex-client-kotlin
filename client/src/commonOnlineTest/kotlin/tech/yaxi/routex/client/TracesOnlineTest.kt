@@ -8,11 +8,10 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.NotFound
 import tech.yaxi.routex.models.TraceId
 
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class TracesOnlineTest {
     @Test

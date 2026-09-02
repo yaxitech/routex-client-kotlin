@@ -7,8 +7,8 @@ import kotlin.time.Instant
 
 /**
  * Generic X.509v3 certificate with the surface the VCEK chain validator needs:
- * RFC 2253 distinguished names, "this cert is signed by `issuer`" verification, and
- * typed reads of arbitrary X.509v3 extensions by dotted OID.
+ * DER-encoded distinguished names, "this cert is signed by `issuer`" verification,
+ * and typed reads of arbitrary X.509v3 extensions by dotted OID.
  *
  * Used as-is for the AMD root (ARK) and intermediate (ASK) certificates, which carry
  * no AMD-specific extensions. The leaf VCEK is modelled by the [VcekCertificate]
@@ -16,15 +16,16 @@ import kotlin.time.Instant
  * readers below.
  *
  * Implementations decode the X.509 wire format with a platform-specific parser
- * (BouncyCastle on JVM/Android, `@peculiar/x509` on JS, `Security` framework on Apple); commonMain never sees
- * raw DER and never embeds a hand-rolled ASN.1 decoder.
+ * (BouncyCastle on JVM/Android, `@peculiar/x509` on JS, routex-client-swift's
+ * `RoutexCrypto` on Apple); commonMain treats the distinguished names as opaque
+ * DER bytes and never embeds a hand-rolled ASN.1 decoder.
  */
 internal expect open class X509Certificate {
-    /** RFC 2253 distinguished name of the certificate subject. */
-    val subjectName: String
+    /** Distinguished name of the certificate subject. */
+    val subjectDn: DistinguishedName
 
-    /** RFC 2253 distinguished name of the certificate issuer. */
-    val issuerName: String
+    /** Distinguished name of the certificate issuer. */
+    val issuerDn: DistinguishedName
 
     /** The subject's `commonName` (OID 2.5.4.3), or `null` when absent. */
     val subjectCommonName: String?
@@ -72,6 +73,15 @@ internal expect open class X509Certificate {
      * valid INTEGER, or if its value overflows `Int`.
      */
     fun extensionAsInteger(oid: String): Int?
+}
+
+/** DER-encoded X.501 distinguished name, compared by content. */
+internal class DistinguishedName(
+    val der: ByteArray,
+) {
+    override fun equals(other: Any?): Boolean = other is DistinguishedName && der.contentEquals(other.der)
+
+    override fun hashCode(): Int = der.contentHashCode()
 }
 
 /**

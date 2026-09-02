@@ -6,9 +6,13 @@ import tech.yaxi.routex.models.AccountReference
 import tech.yaxi.routex.models.AccountsServiceRequest
 import tech.yaxi.routex.models.BalancesServiceRequest
 import tech.yaxi.routex.models.CollectPaymentServiceRequest
+import tech.yaxi.routex.models.ConnectionData
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.DebtorAccountReference
 import tech.yaxi.routex.models.IsoDateTimeOrDate
+import tech.yaxi.routex.models.NonInteractiveAccountsRequest
+import tech.yaxi.routex.models.NonInteractiveBalancesRequest
+import tech.yaxi.routex.models.NonInteractiveTransactionsRequest
 import tech.yaxi.routex.models.PaymentProduct
 import tech.yaxi.routex.models.Session
 import tech.yaxi.routex.models.TransactionsServiceRequest
@@ -46,6 +50,39 @@ internal fun prepareBalances(
         session = session,
         recurringConsents = recurringConsents,
         accounts = accounts,
+    )
+
+internal fun prepareAccountsWithoutCredentials(
+    connectionData: ConnectionData,
+    session: Session?,
+    fields: List<AccountField<*>>,
+    filter: AccountFilter?,
+): NonInteractiveAccountsRequest =
+    NonInteractiveAccountsRequest(
+        connectionData = connectionData,
+        session = session,
+        fields = fields,
+        filter = filter,
+    )
+
+internal fun prepareBalancesWithoutCredentials(
+    connectionData: ConnectionData,
+    session: Session?,
+    accounts: List<AccountReference>,
+): NonInteractiveBalancesRequest =
+    NonInteractiveBalancesRequest(
+        connectionData = connectionData,
+        session = session,
+        accounts = accounts,
+    )
+
+internal fun prepareTransactionsWithoutCredentials(
+    connectionData: ConnectionData,
+    session: Session?,
+): NonInteractiveTransactionsRequest =
+    NonInteractiveTransactionsRequest(
+        connectionData = connectionData,
+        session = session,
     )
 
 internal fun prepareCollectPayment(

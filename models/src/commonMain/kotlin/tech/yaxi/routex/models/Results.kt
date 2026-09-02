@@ -31,13 +31,7 @@ public data class BalancesResult internal constructor(
     public override val timestamp: Instant,
 ) : RoutexResult<Balances>
 
-/**
- * Authenticated result of a successful transactions service call.
- *
- * The provider may legitimately return a missing list (signalling "no transactions
- * available for this delta"). Distinguish absence from emptiness by checking for
- * `null` rather than `isEmpty()`.
- */
+/** Authenticated result of a successful transactions service call. */
 @ConsistentCopyVisibility
 @Serializable
 public data class TransactionsResult internal constructor(

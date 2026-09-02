@@ -7,14 +7,13 @@ import kotlin.test.assertEquals
 import kotlin.test.assertNotNull
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.SearchFilter
 import tech.yaxi.routex.transport.HttpRequest
 import tech.yaxi.routex.transport.HttpResponse
 import tech.yaxi.routex.transport.HttpTransport
 import tech.yaxi.routex.transport.defaultHttpTransport
 
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class RequestHeadersOnlineTest {
     @Test

@@ -6,7 +6,6 @@ import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.CreditorAccountIdentifier
@@ -16,7 +15,7 @@ import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.TransferDetails
 import tech.yaxi.routex.models.TransferResult
 
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class TransferOnlineTest {
     @Test

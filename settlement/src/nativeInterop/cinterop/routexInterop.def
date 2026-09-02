@@ -1,0 +1,6 @@
+language = Objective-C
+headers = RoutexKotlinInterop.h
+package = tech.yaxi.routex.settlement.interop
+staticLibraries = libRoutexKotlinInterop.a
+# /usr/lib/swift: the OS-shipped Swift runtime.
+linkerOpts = -lobjc -framework Foundation -L/usr/lib/swift

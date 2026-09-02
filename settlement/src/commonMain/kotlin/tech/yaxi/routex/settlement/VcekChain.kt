@@ -68,7 +68,6 @@ internal sealed class VcekChainError(
  * SEV-SNP report, per AMD doc 57230 §3 "Subject Public Key Info: ECDSA on curve P-384").
  */
 internal class VcekChainVerifyResult internal constructor(
-    val leafSubjectName: String,
     val family: CpuFamily,
     val productName: String,
     internal val leaf: VcekCertificate,
@@ -106,7 +105,6 @@ internal object VcekChainOps {
         val productName = readVcek("product name") { leaf.productName }
         val tcb = readVcek("tcb extensions") { leaf.tcb }
         return VcekChainVerifyResult(
-            leafSubjectName = leaf.subjectName,
             family = inferFamily(productName),
             productName = productName,
             leaf = leaf,
@@ -153,16 +151,17 @@ internal object VcekChainOps {
         val path = mutableListOf(leaf)
         var current: X509Certificate = leaf
         while (true) {
+            val issuerDn = current.issuerDn
             // Anchor against the trusted roots only, never the supplied chain.
-            val anchor = roots.firstOrNull { it.subjectName == current.issuerName }
+            val anchor = roots.firstOrNull { it.subjectDn == issuerDn }
             if (anchor != null) {
                 path += anchor
                 return path
             }
             val issuer =
-                intermediates.firstOrNull { it.subjectName == current.issuerName && it !in path }
+                intermediates.firstOrNull { it.subjectDn == issuerDn && it !in path }
                     ?: throw VcekChainError.ChainBroken(
-                        "no trusted issuer for subject=${current.subjectName}",
+                        "no trusted issuer for subject CN=${current.subjectCommonName}",
                     )
             path += issuer
             current = issuer

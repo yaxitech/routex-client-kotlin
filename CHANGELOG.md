@@ -1,5 +1,18 @@
 # Changelog
 
+## [0.8.0] - 2026-09-01
+
+### Added
+
+- Apple targets (`macosArm64`, `iosArm64`, `iosSimulatorArm64`; macOS 12 / iOS 15 baselines) for all published modules except the backend-only `routex-refresh-client`.
+  The settlement crypto and X.509 primitives are backed by [routex-client-swift](https://github.com/yaxitech/routex-client-swift) through the `apple-interop` facade.
+- `accounts`, `balances` and `transactions` overloads taking a `ConnectionData`, so a service can be run with the `connectionData` of an earlier `Response.Result` instead of `Credentials`.
+- `InterruptError`, indicating that a request without credentials cannot complete without user interaction.
+
+### Changed
+
+- `@Throws` on the public suspend API now also lists `CancellationException`, as Kotlin/Native requires; JVM consumers are unaffected.
+
 ## [0.7.0] - 2026-08-02
 
 ### Added

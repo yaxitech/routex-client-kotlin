@@ -7,7 +7,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertNull
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.Account
 import tech.yaxi.routex.models.AccountField
 import tech.yaxi.routex.models.AccountType
@@ -23,7 +22,7 @@ import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.SupportedService
 import tech.yaxi.routex.tickets.CollectPaymentField
 
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class CollectPaymentOnlineTest {
     @Test

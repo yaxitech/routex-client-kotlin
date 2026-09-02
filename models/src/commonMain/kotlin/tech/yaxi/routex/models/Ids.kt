@@ -86,8 +86,9 @@ public object SessionSerializer : KSerializer<Session> {
 /**
  * Opaque connection data returned by a successful interactive service call.
  *
- * Persist it and pass it to the non-interactive refresh endpoints to reuse an
- * established consent without re-prompting the user.
+ * Persist it and pass it to the non-interactive refresh endpoints, or in place of
+ * the [Credentials] of an interactive call, to reuse an established consent without
+ * re-prompting the user.
  */
 @Serializable(with = ConnectionDataSerializer::class)
 public class ConnectionData internal constructor(

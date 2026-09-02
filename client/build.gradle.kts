@@ -79,7 +79,6 @@ kotlin {
                 runtimeOnly(libs.junit.platform.launcher)
                 runtimeOnly(libs.slf4j.simple)
                 implementation(project(":tickets"))
-                implementation(libs.ktor.client.cio)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.kotlinx.datetime)
@@ -114,11 +113,31 @@ kotlin {
                 compileOnly(project.dependencies.platform(libs.junit.bom))
                 compileOnly(libs.junit.jupiter.api)
                 implementation(project(":tickets"))
-                implementation(libs.ktor.client.cio)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.kotlinx.datetime)
                 implementation(libs.bouncycastle.prov)
+            }
+        }
+        // JUnit tags do not exist on Kotlin/Native; the online tests are
+        // gated by the `*OnlineTest` name filters in `testRuns` below.
+        getByName("macosArm64Test") {
+            kotlin.srcDir(commonOnlineTestSrc)
+            kotlin.srcDir(generateTestCredentials.map { testCredentialsDir.get().asFile })
+            dependencies {
+                implementation(project(":tickets"))
+                implementation(libs.kotlinx.datetime)
+            }
+        }
+    }
+
+    macosArm64 {
+        testRuns {
+            named("test") {
+                filter { excludeTestsMatching("*OnlineTest") }
+            }
+            create("online") {
+                filter { includeTestsMatching("*OnlineTest") }
             }
         }
     }
@@ -129,6 +148,16 @@ tasks.named<org.jetbrains.kotlin.gradle.targets.js.testing.KotlinJsTest>("jsNode
     // will never discover any tests.
     failOnNoDiscoveredTests = false
 }
+
+// commonTest compiles only documentation samples, so the offline native
+// test binaries discover no tests.
+tasks.withType<org.jetbrains.kotlin.gradle.targets.native.tasks.KotlinNativeTest>().configureEach {
+    if (name != "macosArm64OnlineTest") {
+        failOnNoDiscoveredTests = false
+    }
+}
+
+configureAppleOnlineTests()
 
 tasks.named<Test>("jvmTest") {
     // Default `:check` skips `@Tag("online")` tests. An explicit `--tests` filter

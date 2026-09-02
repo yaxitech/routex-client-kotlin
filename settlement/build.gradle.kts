@@ -1,3 +1,7 @@
+import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinNativeTarget
+import org.jetbrains.kotlin.gradle.tasks.KotlinCompilationTask
+import org.jetbrains.kotlin.konan.target.HostManager
+
 plugins {
     id("routex.kmp-library")
     id("routex.lint")
@@ -121,7 +125,6 @@ kotlin {
                 runtimeOnly(libs.junit.platform.launcher)
                 runtimeOnly(libs.slf4j.simple)
                 implementation(project(":tickets"))
-                implementation(libs.ktor.client.cio)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.kotlinx.datetime)
@@ -137,13 +140,105 @@ kotlin {
                 implementation(libs.androidx.test.runner)
                 implementation(libs.androidx.test.ext.junit)
                 implementation(project(":tickets"))
-                implementation(libs.ktor.client.cio)
                 implementation(libs.kotlinx.coroutines.core)
                 implementation(libs.kotlinx.coroutines.test)
                 implementation(libs.kotlinx.datetime)
             }
         }
+        // JUnit tags do not exist on Kotlin/Native; the online tests are
+        // gated by the `*OnlineTest` name filters in `testRuns` below.
+        getByName("macosArm64Test") {
+            kotlin.srcDir(commonOnlineTestSrc)
+            kotlin.srcDir(generateTestCredentials.map { testCredentialsDir.get().asFile })
+            dependencies {
+                implementation(project(":tickets"))
+                implementation(libs.kotlinx.coroutines.test)
+            }
+        }
     }
+}
+
+// The Apple actuals call the `apple-interop` facade, built per target as a
+// static library and embedded into the klib via cinterop (macOS hosts only).
+val appleInteropPackage = layout.projectDirectory.dir("../apple-interop")
+val appleInteropTriples =
+    mapOf(
+        "macosArm64" to ("arm64-apple-macosx" to "macosx"),
+        "iosArm64" to ("arm64-apple-ios" to "iphoneos"),
+        "iosSimulatorArm64" to ("arm64-apple-ios-simulator" to "iphonesimulator"),
+    )
+val appleInteropLibDirs =
+    appleInteropTriples.mapValues { (targetName, spec) ->
+        val (triple, sdk) = spec
+        val outDir = layout.buildDirectory.dir("appleInterop/$targetName")
+        tasks.register<Exec>("buildAppleInterop${targetName.replaceFirstChar(Char::uppercase)}") {
+            group = "interop"
+            description = "Builds the apple-interop static library for $targetName."
+            // Cinterop tasks exist on every host; only macOS can build the facade.
+            enabled = HostManager.hostIsMac
+            inputs.file(appleInteropPackage.file("build-static-lib.sh"))
+            inputs.file(appleInteropPackage.file("Package.swift"))
+            inputs.file(appleInteropPackage.file("Package.resolved"))
+            inputs.dir(appleInteropPackage.dir("Sources"))
+            inputs.dir(appleInteropPackage.dir("include"))
+            outputs.dir(outDir)
+            commandLine(
+                appleInteropPackage.file("build-static-lib.sh").asFile.absolutePath,
+                triple,
+                sdk,
+                outDir.get().asFile.absolutePath,
+            )
+        }
+        outDir
+    }
+
+kotlin {
+    macosArm64 {
+        testRuns {
+            named("test") {
+                filter { excludeTestsMatching("*OnlineTest") }
+            }
+            create("online") {
+                filter { includeTestsMatching("*OnlineTest") }
+            }
+        }
+    }
+
+    targets.withType<KotlinNativeTarget>().configureEach {
+        // Opt-ins for the cinterop bindings; the markers exist only on native.
+        compilerOptions {
+            optIn.add("kotlinx.cinterop.ExperimentalForeignApi")
+            optIn.add("kotlinx.cinterop.BetaInteropApi")
+        }
+        val nativeTargetName = name
+        compilations.getByName("main").cinterops.register("routexInterop") {
+            definitionFile.set(layout.projectDirectory.file("src/nativeInterop/cinterop/routexInterop.def"))
+            includeDirs(appleInteropPackage.dir("include"))
+            val libDir =
+                appleInteropLibDirs
+                    .getValue(nativeTargetName)
+                    .get()
+                    .asFile
+            extraOpts("-libraryPath", libDir.absolutePath)
+        }
+    }
+}
+
+// The `appleMain` metadata compilation sees the commonized cinterop, too.
+tasks.withType<KotlinCompilationTask<*>>().matching { it.name == "compileAppleMainKotlinMetadata" }.configureEach {
+    compilerOptions {
+        optIn.add("kotlinx.cinterop.ExperimentalForeignApi")
+        optIn.add("kotlinx.cinterop.BetaInteropApi")
+    }
+}
+
+configureAppleOnlineTests()
+
+tasks.matching { it.name.startsWith("cinteropRoutexInterop") }.configureEach {
+    val targetName = name.removePrefix("cinteropRoutexInterop").replaceFirstChar(Char::lowercase)
+    dependsOn("buildAppleInterop${targetName.replaceFirstChar(Char::uppercase)}")
+    // The cinterop task does not track the embedded archive on its own.
+    inputs.dir(appleInteropLibDirs.getValue(targetName))
 }
 
 tasks

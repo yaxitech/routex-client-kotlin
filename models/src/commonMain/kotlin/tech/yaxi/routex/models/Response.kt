@@ -30,7 +30,8 @@ public sealed class Response<T> {
      * @property session Session token to pass on subsequent requests within the same
      *   logical session.
      * @property connectionData Opaque connection data, usable to reuse the established
-     *   consent via the non-interactive refresh endpoints.
+     *   consent via the non-interactive refresh endpoints or in place of the
+     *   [Credentials] of an interactive call.
      */
     public class Result<T> internal constructor(
         public val authenticated: Authenticated<T>,

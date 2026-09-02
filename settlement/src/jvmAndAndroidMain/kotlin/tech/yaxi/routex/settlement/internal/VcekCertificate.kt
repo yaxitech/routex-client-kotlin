@@ -5,7 +5,6 @@ import java.math.BigInteger
 import java.security.Signature
 import java.security.cert.CertificateException
 import java.security.cert.X509Certificate as JavaX509Certificate
-import javax.security.auth.x500.X500Principal
 import kotlin.time.Instant
 import org.bouncycastle.asn1.ASN1EncodableVector
 import org.bouncycastle.asn1.ASN1InputStream
@@ -20,11 +19,11 @@ import org.bouncycastle.asn1.x500.style.IETFUtils
 internal actual open class X509Certificate internal constructor(
     internal val delegate: JavaX509Certificate,
 ) {
-    actual val subjectName: String
-        get() = delegate.subjectX500Principal.getName(X500Principal.RFC2253)
+    actual val subjectDn: DistinguishedName
+        get() = DistinguishedName(delegate.subjectX500Principal.encoded)
 
-    actual val issuerName: String
-        get() = delegate.issuerX500Principal.getName(X500Principal.RFC2253)
+    actual val issuerDn: DistinguishedName
+        get() = DistinguishedName(delegate.issuerX500Principal.encoded)
 
     actual suspend fun verifySignatureBy(issuer: X509Certificate) {
         try {

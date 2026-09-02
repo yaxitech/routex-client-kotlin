@@ -8,7 +8,6 @@ import kotlin.test.assertNotNull
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
 import kotlinx.datetime.LocalDate
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.AccountReference
 import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.BankTransactionCode
@@ -18,7 +17,7 @@ import tech.yaxi.routex.models.TransactionStatus
 import tech.yaxi.routex.models.TransactionsResult
 import tech.yaxi.routex.tickets.Range
 
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class TransactionsOnlineTest {
     @Test

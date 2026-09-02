@@ -16,10 +16,7 @@ kotlin {
     }
 
     sourceSets {
-        // CIO works on JVM, Android, and Kotlin/Native per Ktor docs, so the JVM
-        // and Android targets share a single `defaultHttpTransport()` actual.
-        // The intermediate source set keeps the door open for an Apple-side
-        // actual (Ktor Darwin) when those targets land.
+        // JVM and Android share a single CIO-backed `defaultHttpTransport()` actual.
         val jvmAndAndroidMain =
             create("jvmAndAndroidMain") {
                 dependsOn(commonMain.get())
@@ -29,6 +26,10 @@ kotlin {
             }
         jvmMain.get().dependsOn(jvmAndAndroidMain)
         androidMain.get().dependsOn(jvmAndAndroidMain)
+
+        appleMain.dependencies {
+            implementation(libs.ktor.client.darwin)
+        }
 
         commonMain {
             dependencies {

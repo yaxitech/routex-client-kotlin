@@ -8,11 +8,10 @@ import kotlin.test.assertTrue
 import kotlin.uuid.ExperimentalUuidApi
 import kotlin.uuid.Uuid
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.ConnectionId
 import tech.yaxi.routex.models.NotFound
 
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class InfoOnlineTest {
     @Test

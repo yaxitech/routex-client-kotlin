@@ -1,7 +1,6 @@
 package tech.yaxi.routex.client
 
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.request
 import io.ktor.http.HttpMethod
 import io.ktor.http.Url
@@ -11,7 +10,6 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.Response
 
@@ -21,10 +19,10 @@ import tech.yaxi.routex.models.Response
  * latter lets the caller register the URI per-ticket via [RoutexClient.registerRedirectUri].
  * Both flows must resolve the bank-side redirect chain to the same registered URI.
  */
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class RedirectsOnlineTest {
-    private val nonFollowingClient = HttpClient(CIO) { followRedirects = false }
+    private val nonFollowingClient = HttpClient { followRedirects = false }
     private val redirectUri = "myapp://redirect?context=signup"
     private val credentials =
         Credentials(

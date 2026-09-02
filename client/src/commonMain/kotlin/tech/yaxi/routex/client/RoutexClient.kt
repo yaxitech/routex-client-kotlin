@@ -1,6 +1,7 @@
 package tech.yaxi.routex.client
 
 import io.ktor.http.Url
+import kotlin.coroutines.cancellation.CancellationException
 import kotlin.io.encoding.Base64
 import kotlin.jvm.JvmOverloads
 import kotlinx.serialization.KSerializer
@@ -10,9 +11,12 @@ import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.encodeToJsonElement
 import kotlinx.serialization.json.put
 import tech.yaxi.routex.client.internal.prepareAccounts
+import tech.yaxi.routex.client.internal.prepareAccountsWithoutCredentials
 import tech.yaxi.routex.client.internal.prepareBalances
+import tech.yaxi.routex.client.internal.prepareBalancesWithoutCredentials
 import tech.yaxi.routex.client.internal.prepareCollectPayment
 import tech.yaxi.routex.client.internal.prepareTransactions
+import tech.yaxi.routex.client.internal.prepareTransactionsWithoutCredentials
 import tech.yaxi.routex.client.internal.prepareTransfer
 import tech.yaxi.routex.models.AccountField
 import tech.yaxi.routex.models.AccountFilter
@@ -24,6 +28,7 @@ import tech.yaxi.routex.models.BalancesServiceRequest
 import tech.yaxi.routex.models.CollectPaymentResult
 import tech.yaxi.routex.models.CollectPaymentServiceRequest
 import tech.yaxi.routex.models.ConfirmationContext
+import tech.yaxi.routex.models.ConnectionData
 import tech.yaxi.routex.models.ConnectionDetails
 import tech.yaxi.routex.models.ConnectionId
 import tech.yaxi.routex.models.ConnectionInfo
@@ -32,6 +37,9 @@ import tech.yaxi.routex.models.DebtorAccountReference
 import tech.yaxi.routex.models.InputContext
 import tech.yaxi.routex.models.InternalRoutexApi
 import tech.yaxi.routex.models.IsoDateTimeOrDate
+import tech.yaxi.routex.models.NonInteractiveAccountsRequest
+import tech.yaxi.routex.models.NonInteractiveBalancesRequest
+import tech.yaxi.routex.models.NonInteractiveTransactionsRequest
 import tech.yaxi.routex.models.PaymentProduct
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.RoutexError
@@ -104,8 +112,9 @@ import tech.yaxi.routex.transport.defaultHttpTransport
  *  - Persist
  *    [result.connectionData][tech.yaxi.routex.models.Response.Result.connectionData].
  *    Pass it back via [Credentials.connectionData] on a future [RoutexClient] call to
- *    skip prompts the original consent already covers, or hand it to your backend to
- *    drive non-interactive refreshes via
+ *    skip prompts the original consent already covers, in place of the [Credentials]
+ *    to run a call without credentials, or hand it to your backend to drive
+ *    non-interactive refreshes via
  *    [RoutexRefreshClient][tech.yaxi.routex.refresh.RoutexRefreshClient].
  *  - Pass [result.session][tech.yaxi.routex.models.Response.Result.session] to
  *    subsequent calls in the same flow.
@@ -121,7 +130,8 @@ import tech.yaxi.routex.transport.defaultHttpTransport
  *    [ConnectionData][tech.yaxi.routex.models.ConnectionData] carries it. Subsequent
  *    [RoutexClient] calls that reuse that
  *    [ConnectionData][tech.yaxi.routex.models.ConnectionData] (via
- *    [Credentials.connectionData]) and non-interactive refreshes on
+ *    [Credentials.connectionData] or in place of the [Credentials]) and
+ *    non-interactive refreshes on
  *    [RoutexRefreshClient][tech.yaxi.routex.refresh.RoutexRefreshClient] skip the
  *    interrupt loop until the consent expires or is revoked. Persist the resulting
  *    [ConnectionData][tech.yaxi.routex.models.ConnectionData] alongside the user's
@@ -244,7 +254,7 @@ public class RoutexClient internal constructor(
      * @see <a href="https://docs.yaxi.tech/accounts.html">Accounts service reference</a>
      * @sample tech.yaxi.routex.client.samples.RoutexClientSamples.accountsCall
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     @Suppress("LongParameterList")
     public suspend fun accounts(
         ticket: Ticket.Accounts,
@@ -260,11 +270,41 @@ public class RoutexClient internal constructor(
     }
 
     /**
+     * Invoke the accounts service on the consent carried by [connectionData],
+     * without credentials.
+     *
+     * [connectionData] comes from a
+     * [result][tech.yaxi.routex.models.Response.Result] of an earlier call. A user
+     * is assumed to be in session on the connection.
+     *
+     * The response is the same as with [credentials][Credentials]: usually a
+     * [Response.Result], but an interrupt when the bank demands user interaction
+     * after all, which the caller may resolve or abandon. When the call cannot even
+     * be attempted without interaction, [InterruptError][tech.yaxi.routex.models.InterruptError]
+     * is thrown; recover by running the user through a call with [Credentials] and
+     * persisting the connection data it returns.
+     *
+     * @see <a href="https://docs.yaxi.tech/accounts.html">Accounts service reference</a>
+     */
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
+    public suspend fun accounts(
+        ticket: Ticket.Accounts,
+        connectionData: ConnectionData,
+        fields: List<AccountField<*>>,
+        filter: AccountFilter? = null,
+        session: Session? = null,
+    ): Response<AccountsResult> {
+        val body = prepareAccountsWithoutCredentials(connectionData, session, fields, filter)
+        val bytes = encodeRequestBody(NonInteractiveAccountsRequest.serializer(), body)
+        return decode(core.request(ticket, "accounts/service", bytes), AccountsResult.serializer())
+    }
+
+    /**
      * Invoke the balances service: fetch current balances for [accounts].
      *
      * @see <a href="https://docs.yaxi.tech/balances.html">Balances service reference</a>
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun balances(
         ticket: Ticket.Balances,
         credentials: Credentials,
@@ -274,6 +314,25 @@ public class RoutexClient internal constructor(
     ): Response<BalancesResult> {
         val body = prepareBalances(credentials, session, recurringConsents, accounts)
         val bytes = encodeRequestBody(BalancesServiceRequest.serializer(), body)
+        return decode(core.request(ticket, "balances/service", bytes), BalancesResult.serializer())
+    }
+
+    /**
+     * Invoke the balances service on the consent carried by [connectionData],
+     * without credentials.
+     *
+     * @see accounts
+     * @see <a href="https://docs.yaxi.tech/balances.html">Balances service reference</a>
+     */
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
+    public suspend fun balances(
+        ticket: Ticket.Balances,
+        connectionData: ConnectionData,
+        accounts: List<AccountReference>,
+        session: Session? = null,
+    ): Response<BalancesResult> {
+        val body = prepareBalancesWithoutCredentials(connectionData, session, accounts)
+        val bytes = encodeRequestBody(NonInteractiveBalancesRequest.serializer(), body)
         return decode(core.request(ticket, "balances/service", bytes), BalancesResult.serializer())
     }
 
@@ -292,7 +351,7 @@ public class RoutexClient internal constructor(
      * @see <a href="https://docs.yaxi.tech/collect-payment.html">Collect-payment service reference</a>
      * @sample tech.yaxi.routex.client.samples.RoutexClientSamples.collectPaymentCall
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun collectPayment(
         ticket: Ticket.CollectPayment,
         credentials: Credentials,
@@ -314,7 +373,7 @@ public class RoutexClient internal constructor(
      *
      * @see <a href="https://docs.yaxi.tech/transactions.html">Transactions service reference</a>
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun transactions(
         ticket: Ticket.Transactions,
         credentials: Credentials,
@@ -323,6 +382,30 @@ public class RoutexClient internal constructor(
     ): Response<TransactionsResult> {
         val body = prepareTransactions(credentials, session, recurringConsents)
         val bytes = encodeRequestBody(TransactionsServiceRequest.serializer(), body)
+        return decode(
+            core.request(ticket, "transactions/service", bytes),
+            TransactionsResult.serializer(),
+        )
+    }
+
+    /**
+     * Invoke the transactions service on the consent carried by [connectionData],
+     * without credentials.
+     *
+     * A window of 90 days or more requires user interaction, so it throws
+     * [InterruptError][tech.yaxi.routex.models.InterruptError] instead.
+     *
+     * @see accounts
+     * @see <a href="https://docs.yaxi.tech/transactions.html">Transactions service reference</a>
+     */
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
+    public suspend fun transactions(
+        ticket: Ticket.Transactions,
+        connectionData: ConnectionData,
+        session: Session? = null,
+    ): Response<TransactionsResult> {
+        val body = prepareTransactionsWithoutCredentials(connectionData, session)
+        val bytes = encodeRequestBody(NonInteractiveTransactionsRequest.serializer(), body)
         return decode(
             core.request(ticket, "transactions/service", bytes),
             TransactionsResult.serializer(),
@@ -342,7 +425,7 @@ public class RoutexClient internal constructor(
      *   is requested when omitted.
      * @see <a href="https://docs.yaxi.tech/transfer.html">Transfer service reference</a>
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     @Suppress("LongParameterList")
     public suspend fun transfer(
         ticket: Ticket.Transfer,
@@ -381,7 +464,7 @@ public class RoutexClient internal constructor(
      *   each input variant.
      * @sample tech.yaxi.routex.client.samples.RoutexClientSamples.respondAccountsContinuation
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun respondAccounts(
         ticket: Ticket.Accounts,
         context: InputContext,
@@ -398,7 +481,7 @@ public class RoutexClient internal constructor(
      *   [DialogInput][tech.yaxi.routex.models.DialogInput] for the format expected by
      *   each input variant.
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun respondBalances(
         ticket: Ticket.Balances,
         context: InputContext,
@@ -415,7 +498,7 @@ public class RoutexClient internal constructor(
      *   [DialogInput][tech.yaxi.routex.models.DialogInput] for the format expected by
      *   each input variant.
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun respondTransactions(
         ticket: Ticket.Transactions,
         context: InputContext,
@@ -433,7 +516,7 @@ public class RoutexClient internal constructor(
      *   [DialogInput][tech.yaxi.routex.models.DialogInput] for the format expected by
      *   each input variant.
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun respondCollectPayment(
         ticket: Ticket.CollectPayment,
         context: InputContext,
@@ -451,7 +534,7 @@ public class RoutexClient internal constructor(
      *   [DialogInput][tech.yaxi.routex.models.DialogInput] for the format expected by
      *   each input variant.
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun respondTransfer(
         ticket: Ticket.Transfer,
         context: InputContext,
@@ -466,7 +549,7 @@ public class RoutexClient internal constructor(
      *   [Response.Redirect], or [Response.RedirectHandle] returned by the prior call.
      * @sample tech.yaxi.routex.client.samples.RoutexClientSamples.confirmRedirect
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun confirmAccounts(
         ticket: Ticket.Accounts,
         context: ConfirmationContext,
@@ -479,7 +562,7 @@ public class RoutexClient internal constructor(
      * @param context [ConfirmationContext] taken from the [Response.Dialog],
      *   [Response.Redirect], or [Response.RedirectHandle] returned by the prior call.
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun confirmBalances(
         ticket: Ticket.Balances,
         context: ConfirmationContext,
@@ -492,7 +575,7 @@ public class RoutexClient internal constructor(
      * @param context [ConfirmationContext] taken from the [Response.Dialog],
      *   [Response.Redirect], or [Response.RedirectHandle] returned by the prior call.
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun confirmTransactions(
         ticket: Ticket.Transactions,
         context: ConfirmationContext,
@@ -505,7 +588,7 @@ public class RoutexClient internal constructor(
      * @param context [ConfirmationContext] taken from the [Response.Dialog],
      *   [Response.Redirect], or [Response.RedirectHandle] returned by the prior call.
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun confirmCollectPayment(
         ticket: Ticket.CollectPayment,
         context: ConfirmationContext,
@@ -518,7 +601,7 @@ public class RoutexClient internal constructor(
      * @param context [ConfirmationContext] taken from the [Response.Dialog],
      *   [Response.Redirect], or [Response.RedirectHandle] returned by the prior call.
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun confirmTransfer(
         ticket: Ticket.Transfer,
         context: ConfirmationContext,
@@ -529,7 +612,7 @@ public class RoutexClient internal constructor(
      *
      * @sample tech.yaxi.routex.client.samples.RoutexClientSamples.connectionInfo
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun info(
         ticket: Ticket,
         connectionId: ConnectionId,
@@ -549,7 +632,7 @@ public class RoutexClient internal constructor(
      *   [ConnectionDetails.BICS]).
      * @sample tech.yaxi.routex.client.samples.RoutexClientSamples.searchConnections
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun search(
         ticket: Ticket,
         filters: List<SearchFilter>,
@@ -570,7 +653,7 @@ public class RoutexClient internal constructor(
      *
      * @sample tech.yaxi.routex.client.samples.RoutexClientSamples.fetchTraceForLastRequest
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     @OptIn(kotlin.uuid.ExperimentalUuidApi::class)
     public suspend fun trace(
         ticket: Ticket,
@@ -591,7 +674,7 @@ public class RoutexClient internal constructor(
      *   or WebView. After the user returns, continue the flow with the matching
      *   `confirm*` and the redirect handle's `context`.
      */
-    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class)
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
     public suspend fun registerRedirectUri(
         ticket: Ticket,
         handle: String,

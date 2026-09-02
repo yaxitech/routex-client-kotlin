@@ -16,6 +16,7 @@ import tech.yaxi.routex.models.AccountsResult
 import tech.yaxi.routex.models.BalancesResult
 import tech.yaxi.routex.models.CollectPaymentResult
 import tech.yaxi.routex.models.ConfirmationContext
+import tech.yaxi.routex.models.ConnectionData
 import tech.yaxi.routex.models.ConnectionDetails
 import tech.yaxi.routex.models.ConnectionId
 import tech.yaxi.routex.models.ConnectionInfo
@@ -66,8 +67,9 @@ import tech.yaxi.routex.transport.defaultHttpTransport
  *  - Persist
  *    [result.getConnectionData()][tech.yaxi.routex.models.Response.Result.connectionData].
  *    Pass it back via [Credentials.connectionData] on a future call to skip prompts
- *    the original consent already covers, or hand it to your backend to drive
- *    non-interactive refreshes via
+ *    the original consent already covers, in place of the [Credentials] to run a call
+ *    without credentials, or hand it to your backend to drive non-interactive
+ *    refreshes via
  *    [RoutexRefreshAsyncClient][tech.yaxi.routex.refresh.RoutexRefreshAsyncClient].
  *  - Pass [result.getSession()][tech.yaxi.routex.models.Response.Result.session] to
  *    subsequent calls in the same flow.
@@ -238,6 +240,23 @@ public class RoutexAsyncClient private constructor(
         scope.future { delegate.accounts(ticket, credentials, fields, filter, session, recurringConsents) }
 
     /**
+     * Invoke the accounts service on the consent carried by [connectionData],
+     * without credentials.
+     *
+     * @see RoutexClient.accounts
+     * @see <a href="https://docs.yaxi.tech/accounts.html">Accounts service reference</a>
+     */
+    @JvmOverloads
+    public fun accounts(
+        ticket: Ticket.Accounts,
+        connectionData: ConnectionData,
+        fields: List<AccountField<*>>,
+        filter: AccountFilter? = null,
+        session: Session? = null,
+    ): CompletableFuture<Response<AccountsResult>> =
+        scope.future { delegate.accounts(ticket, connectionData, fields, filter, session) }
+
+    /**
      * Invoke the balances service: fetch current balances for [accounts].
      *
      * @see <a href="https://docs.yaxi.tech/balances.html">Balances service reference</a>
@@ -251,6 +270,22 @@ public class RoutexAsyncClient private constructor(
         recurringConsents: Boolean = false,
     ): CompletableFuture<Response<BalancesResult>> =
         scope.future { delegate.balances(ticket, credentials, accounts, session, recurringConsents) }
+
+    /**
+     * Invoke the balances service on the consent carried by [connectionData],
+     * without credentials.
+     *
+     * @see RoutexClient.accounts
+     * @see <a href="https://docs.yaxi.tech/balances.html">Balances service reference</a>
+     */
+    @JvmOverloads
+    public fun balances(
+        ticket: Ticket.Balances,
+        connectionData: ConnectionData,
+        accounts: List<AccountReference>,
+        session: Session? = null,
+    ): CompletableFuture<Response<BalancesResult>> =
+        scope.future { delegate.balances(ticket, connectionData, accounts, session) }
 
     /**
      * Invoke the collect-payment service: identify the debtor and prepare a
@@ -302,6 +337,21 @@ public class RoutexAsyncClient private constructor(
         recurringConsents: Boolean = false,
     ): CompletableFuture<Response<TransactionsResult>> =
         scope.future { delegate.transactions(ticket, credentials, session, recurringConsents) }
+
+    /**
+     * Invoke the transactions service on the consent carried by [connectionData],
+     * without credentials.
+     *
+     * @see RoutexClient.transactions
+     * @see <a href="https://docs.yaxi.tech/transactions.html">Transactions service reference</a>
+     */
+    @JvmOverloads
+    public fun transactions(
+        ticket: Ticket.Transactions,
+        connectionData: ConnectionData,
+        session: Session? = null,
+    ): CompletableFuture<Response<TransactionsResult>> =
+        scope.future { delegate.transactions(ticket, connectionData, session) }
 
     /**
      * Invoke the transfer service: initiate a credit transfer for [product] with the

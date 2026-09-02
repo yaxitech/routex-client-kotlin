@@ -1,6 +1,7 @@
 .gradle/
 build/
 **/build/
+apple-interop/.build/
 local.properties
 .idea/
 *.iml

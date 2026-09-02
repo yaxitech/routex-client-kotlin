@@ -11,12 +11,18 @@ kotlin {
         optIn.add("tech.yaxi.routex.models.InternalRoutexApi")
     }
 
+    // Needed for `appleMain`; `routex.kmp-jvm-library` does not apply it.
+    applyDefaultHierarchyTemplate()
+
     jvm()
 
     js {
         nodejs()
         useEsModules()
     }
+    macosArm64()
+    iosArm64()
+    iosSimulatorArm64()
 
     sourceSets {
         commonMain {

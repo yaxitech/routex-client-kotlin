@@ -1,7 +1,6 @@
 package tech.yaxi.routex.client
 
 import io.ktor.client.HttpClient
-import io.ktor.client.engine.cio.CIO
 import io.ktor.client.request.request
 import io.ktor.http.HttpMethod
 import io.ktor.http.Url
@@ -10,7 +9,6 @@ import kotlin.test.assertTrue
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.Amount
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.CreditorAccountIdentifier
@@ -19,14 +17,14 @@ import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.Ticket
 import tech.yaxi.routex.tickets.CollectPaymentField
 
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class CollectPaymentRandomOnlineTest {
     @Test
     fun randomUserDrivesInterruptsBeforeResult() =
         runTest {
             val client = OnlineTestSupport.routexClient()
-            val nonFollowingClient = HttpClient(CIO) { followRedirects = false }
+            val nonFollowingClient = HttpClient { followRedirects = false }
             val ticket =
                 OnlineTestSupport.ticketIssuer.collectPayment(
                     amount = Amount("100", "EUR"),

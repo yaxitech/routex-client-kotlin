@@ -10,14 +10,13 @@ import kotlin.time.Duration.Companion.minutes
 import kotlin.time.Instant
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.ConnectionId
 import tech.yaxi.routex.models.TicketError
 import tech.yaxi.routex.models.TicketErrorCode
 import tech.yaxi.routex.testing.internal.TestCredentials
 import tech.yaxi.routex.tickets.RoutexTicketIssuer
 
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class ErrorsOnlineTest {
     @Test
@@ -50,5 +49,25 @@ class ErrorsOnlineTest {
             }
         assertEquals("Ticket is expired", error.message)
         assertEquals(TicketErrorCode.EXPIRED, error.code)
+    }
+
+    @Test
+    fun unknownApiKeyOnInfoThrowsTicketErrorWithUnknownKeyCode() {
+        val client = OnlineTestSupport.routexClient()
+        val unknownKeyIssuer =
+            RoutexTicketIssuer(
+                apiKeyId = "api-key-949daeb8-728f-480e-bf66-a0f0c374b2c7",
+                apiKeySecret = Base64.Default.decode(TestCredentials.API_KEY),
+            )
+        val unknownKeyTicket = unknownKeyIssuer.accounts()
+
+        val error =
+            assertFailsWith<TicketError> {
+                runTest {
+                    client.info(unknownKeyTicket, ConnectionId("connection-00000000-0000-0000-0000-000000000000"))
+                }
+            }
+        assertEquals("Unknown key", error.message)
+        assertEquals(TicketErrorCode.UNKNOWN_KEY, error.code)
     }
 }

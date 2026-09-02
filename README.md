@@ -2,7 +2,8 @@
 
 Kotlin Multiplatform client library for [YAXI's](https://yaxi.tech) Open Banking services.
 
-Currently ships with JVM and Android targets.
+Ships with JVM, Android, and Apple (macOS and iOS) targets.
+The Apple targets are Apple Silicon only (`macosArm64`, `iosArm64`, `iosSimulatorArm64`) and require macOS 12 / iOS 15 or newer.
 Service methods are `suspend` functions and integrate with structured concurrency on Kotlin coroutines.
 Java consumers should use the `RoutexAsyncClient` facade backed by `CompletableFuture`.
 
@@ -17,7 +18,7 @@ Requires JDK 17 or newer and Android `minSdk` 24.
 
 ```kotlin
 dependencies {
-    implementation("tech.yaxi:routex-client:0.7.0")
+    implementation("tech.yaxi:routex-client:0.8.0")
 }
 ```
 
@@ -81,9 +82,10 @@ if (response is Response.Result) {
     //   Verify the signature in a trusted environment before acting on the data.
     // response.session: short-lived, pass to consecutive service calls to speed up authentication
     // response.connectionData: persist alongside credentials to reuse the consent on
-    //   subsequent calls (via Credentials.connectionData) or for non-interactive refreshes
-    //   via RoutexRefreshClient. Pass `recurringConsents = true` on the service call to
-    //   request a long-lived consent that skips the interrupt loop until it expires.
+    //   subsequent calls (via Credentials.connectionData or in place of the credentials)
+    //   or for non-interactive refreshes via RoutexRefreshClient. Pass
+    //   `recurringConsents = true` on the service call to request a long-lived consent
+    //   that skips the interrupt loop until it expires.
 }
 ```
 

@@ -14,8 +14,8 @@ import kotlin.time.Clock
  */
 class CertificateConstraintsTest {
     private val roots = AmdRootStore.certificates
-    private val arks = roots.filter { it.subjectName == it.issuerName }
-    private val asks = roots.filter { it.subjectName != it.issuerName }
+    private val arks = roots.filter { it.subjectDn == it.issuerDn }
+    private val asks = roots.filter { it.subjectDn != it.issuerDn }
 
     @Test
     fun arksAreCasPermittedToSignWithNoPathLengthLimit() {

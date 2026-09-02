@@ -9,7 +9,6 @@ import kotlin.test.assertNotNull
 import kotlin.test.assertTrue
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.InternalRoutexApi
 import tech.yaxi.routex.testing.internal.TestCredentials
 import tech.yaxi.routex.tickets.RoutexTicketIssuer
@@ -21,7 +20,7 @@ import tech.yaxi.routex.transport.defaultHttpTransport
  * task fails fast when `local.properties` is missing the credentials, so this test
  * can assume they are populated.
  */
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class SettlementOnlineTest {
     @Test

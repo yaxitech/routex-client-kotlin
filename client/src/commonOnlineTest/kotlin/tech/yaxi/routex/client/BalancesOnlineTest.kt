@@ -7,14 +7,13 @@ import kotlin.test.assertIs
 import kotlin.test.assertNotNull
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
-import org.junit.jupiter.api.Tag
 import tech.yaxi.routex.models.AccountReference
 import tech.yaxi.routex.models.BalanceType
 import tech.yaxi.routex.models.BalancesResult
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.Response
 
-@Tag("online")
+@OnlineTest
 @OptIn(ExperimentalUuidApi::class)
 class BalancesOnlineTest {
     @Test

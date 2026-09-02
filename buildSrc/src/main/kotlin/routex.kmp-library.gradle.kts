@@ -15,6 +15,10 @@ val libs = the<org.gradle.accessors.dm.LibrariesForLibs>()
 kotlin {
     explicitApi = ExplicitApiMode.Strict
 
+    // Hand-crafted source sets (`jvmAndAndroidMain`) suppress the default
+    // hierarchy; apply it explicitly so the Apple source sets exist.
+    applyDefaultHierarchyTemplate()
+
     // Java toolchain version pinned for compilation; Gradle's Foojay resolver
     // provisions it on demand when not present locally.
     jvmToolchain(25)
@@ -43,6 +47,12 @@ kotlin {
         minSdk = libs.versions.android.minSdk.get().toInt()
         withHostTest {}
     }
+
+    // Non-macOS hosts cross-compile only the klibs; tests, final binaries,
+    // and the settlement cinterop need macOS.
+    macosArm64()
+    iosArm64()
+    iosSimulatorArm64()
 }
 
 // `allWarningsAsErrors` only on production sources; test code legitimately

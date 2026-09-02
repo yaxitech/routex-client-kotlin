@@ -8,8 +8,29 @@ import org.khronos.webgl.Uint8Array
 internal actual open class X509Certificate internal constructor(
     internal val jsX509Cert: PeculiarX509.X509Certificate,
 ) {
-    actual val subjectName: String get() = jsX509Cert.subject
-    actual val issuerName: String get() = jsX509Cert.issuer
+    actual val subjectDn: DistinguishedName
+        get() =
+            DistinguishedName(
+                Uint8Array(
+                    jsX509Cert
+                        .asDynamic()
+                        .subjectName
+                        .toArrayBuffer()
+                        .unsafeCast<ArrayBuffer>(),
+                ).toKotlinByteArray(),
+            )
+
+    actual val issuerDn: DistinguishedName
+        get() =
+            DistinguishedName(
+                Uint8Array(
+                    jsX509Cert
+                        .asDynamic()
+                        .issuerName
+                        .toArrayBuffer()
+                        .unsafeCast<ArrayBuffer>(),
+                ).toKotlinByteArray(),
+            )
 
     actual val subjectCommonName: String?
         get() =

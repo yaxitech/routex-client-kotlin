@@ -239,14 +239,13 @@ public data object NotFound : RoutexError() {
 /**
  * The service call requires user interaction to complete.
  *
- * Only the non-interactive
- * [RoutexRefreshClient][tech.yaxi.routex.refresh.RoutexRefreshClient] endpoints
- * raise this error. The interactive
- * [RoutexClient][tech.yaxi.routex.client.RoutexClient] surfaces user-interaction
- * needs via [Response.Dialog], [Response.Redirect], or [Response.RedirectHandle]
- * instead. Recover by running the user through a fresh interactive flow on
- * [RoutexClient][tech.yaxi.routex.client.RoutexClient] and persisting the new
- * [ConnectionData] for subsequent refreshes.
+ * Only requests passing a [ConnectionData] instead of [Credentials] raise this
+ * error, be it through the
+ * [RoutexRefreshClient][tech.yaxi.routex.refresh.RoutexRefreshClient] endpoints or
+ * through [RoutexClient][tech.yaxi.routex.client.RoutexClient]; with [Credentials]
+ * a [Response.Dialog], [Response.Redirect], or [Response.RedirectHandle] gets
+ * returned instead. Recover by running the user through a request with
+ * [Credentials] and persisting the [ConnectionData] it returns.
  */
 @Serializable
 public data object InterruptError : RoutexError() {
