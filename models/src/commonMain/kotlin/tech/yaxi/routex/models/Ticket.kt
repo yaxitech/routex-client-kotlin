@@ -62,6 +62,15 @@ public sealed class Ticket {
             override val id: Uuid = validateAndExtractId(raw, "CollectPayment")
         }
 
+    /** Ticket that authenticates a call to the standing-orders service. */
+    public data class StandingOrders
+        @Throws(InvalidTicketError::class)
+        constructor(
+            override val raw: String,
+        ) : Ticket() {
+            override val id: Uuid = validateAndExtractId(raw, "StandingOrders")
+        }
+
     /** Ticket that authenticates a call to the transactions service. */
     public data class Transactions
         @Throws(InvalidTicketError::class)
@@ -89,9 +98,9 @@ public sealed class Ticket {
          * Reach for this only when the calling code does not know the service
          * ahead of time (generic dispatch, diagnostics). When the service is
          * known, prefer the typed constructor: [Accounts], [Balances],
-         * [CollectPayment], [Transactions], or [Transfer]. Each typed constructor
-         * performs the same parsing and additionally enforces the expected
-         * service at the type level.
+         * [CollectPayment], [StandingOrders], [Transactions], or [Transfer].
+         * Each typed constructor performs the same parsing and additionally
+         * enforces the expected service at the type level.
          */
         @JvmStatic
         @Throws(InvalidTicketError::class)
@@ -101,6 +110,7 @@ public sealed class Ticket {
                 "Accounts" -> Accounts(raw)
                 "Balances" -> Balances(raw)
                 "CollectPayment" -> CollectPayment(raw)
+                "StandingOrders" -> StandingOrders(raw)
                 "Transactions" -> Transactions(raw)
                 "Transfer" -> Transfer(raw)
                 else -> throw InvalidTicketError("Unknown ticket service: '$service'")

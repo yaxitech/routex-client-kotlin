@@ -82,6 +82,11 @@ public sealed class AccountIdentifier {
     public data class Number(
         public val value: String,
     ) : AccountIdentifier()
+
+    /** Masked payment card number. */
+    public data class MaskedPan(
+        public val value: String,
+    ) : AccountIdentifier()
 }
 
 /** @suppress */
@@ -115,6 +120,8 @@ public object AccountIdentifierSerializer : KSerializer<AccountIdentifier> {
                 JsonObject(mapOf("iban" to JsonPrimitive(value.value)))
             is AccountIdentifier.Number ->
                 JsonObject(mapOf("number" to JsonPrimitive(value.value)))
+            is AccountIdentifier.MaskedPan ->
+                JsonObject(mapOf("maskedPan" to JsonPrimitive(value.value)))
         }
 
     internal fun decodeFromJsonObject(obj: JsonObject): AccountIdentifier {
@@ -124,6 +131,9 @@ public object AccountIdentifierSerializer : KSerializer<AccountIdentifier> {
         (obj["number"] as? JsonPrimitive)?.takeIf { it.isString }?.let {
             return AccountIdentifier.Number(it.content)
         }
+        (obj["maskedPan"] as? JsonPrimitive)?.takeIf { it.isString }?.let {
+            return AccountIdentifier.MaskedPan(it.content)
+        }
         throw SerializationException(
             "Unknown or malformed AccountIdentifier variant in object: ${obj.keys}",
         )
@@ -131,10 +141,10 @@ public object AccountIdentifierSerializer : KSerializer<AccountIdentifier> {
 }
 
 /**
- * Reference to an account by IBAN or account number, with an optional ISO 4217
- * currency code for multi-currency accounts.
+ * Reference to an account by IBAN, account number or masked payment card number,
+ * with an optional ISO 4217 currency code for multi-currency accounts.
  *
- * Construct with [iban] or [number]; the chosen identifier is held in [id].
+ * Construct with [iban], [number] or [maskedPan]; the chosen identifier is held in [id].
  */
 @Serializable(with = AccountReferenceSerializer::class)
 public data class AccountReference(
@@ -155,6 +165,13 @@ public data class AccountReference(
             number: String,
             currency: String? = null,
         ): AccountReference = AccountReference(AccountIdentifier.Number(number), currency)
+
+        /** Reference a card account by its masked payment card number. */
+        @JvmStatic
+        public fun maskedPan(
+            maskedPan: String,
+            currency: String? = null,
+        ): AccountReference = AccountReference(AccountIdentifier.MaskedPan(maskedPan), currency)
     }
 }
 
@@ -197,7 +214,7 @@ public object AccountReferenceSerializer : KSerializer<AccountReference> {
             (obj["currency"] as? JsonPrimitive)?.let {
                 if (it.isString) it.content else null
             }
-        val unknown = obj.keys - setOf("iban", "number", "currency")
+        val unknown = obj.keys - setOf("iban", "number", "maskedPan", "currency")
         if (unknown.isNotEmpty()) {
             throw SerializationException("Unknown keys in AccountReference: $unknown")
         }

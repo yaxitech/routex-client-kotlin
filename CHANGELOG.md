@@ -1,5 +1,21 @@
 # Changelog
 
+## [0.9.0] - 2026-10-22
+
+### Added
+
+- `standingOrders`, `respondStandingOrders` and `confirmStandingOrders`
+- `Account.maskedPan` and `AccountField.MaskedPan`, the masked payment card number, and `AccountReference.maskedPan(maskedPan, currency?)` to reference a card account in the balances and transactions services
+
+### Changed
+
+- **Breaking:** `AccountIdentifier` and `AccountField` gain a `MaskedPan` subclass, so exhaustive `when` expressions over them need an additional branch.
+- Updated the dependencies that reach consumers: Kotlin 2.4.20, Ktor 3.6.0, and, at runtime on JVM and Android, BouncyCastle 1.86.
+
+### Fixed
+
+- `Amount(String, String)` throws `IllegalArgumentException` for all malformed input and parses scientific notation correctly.
+
 ## [0.8.0] - 2026-09-01
 
 ### Added

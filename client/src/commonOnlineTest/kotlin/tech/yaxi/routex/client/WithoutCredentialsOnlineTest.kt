@@ -28,9 +28,9 @@ import tech.yaxi.routex.models.TransactionsResult
 import tech.yaxi.routex.tickets.Range
 
 /**
- * The `accounts`/`balances`/`transactions` overloads that take [ConnectionData] instead of
- * [Credentials], covering both the happy path and the two ways a call can fail without a
- * user to interact with.
+ * The `accounts`/`balances`/`transactions` overloads that take [ConnectionData]
+ * instead of [Credentials], covering both the happy path and the two ways a call can fail
+ * without a user to interact with.
  */
 @OnlineTest
 @OptIn(ExperimentalUuidApi::class)

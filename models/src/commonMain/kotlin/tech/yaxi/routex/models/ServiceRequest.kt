@@ -31,6 +31,14 @@ public data class CollectPaymentServiceRequest(
     public val account: DebtorAccountReference? = null,
 )
 
+/** Request body for the interactive standing-orders service. */
+@Serializable
+public data class StandingOrdersServiceRequest(
+    public val credentials: Credentials,
+    public val session: Session? = null,
+    public val recurringConsents: Boolean = false,
+)
+
 /** Request body for the interactive transactions service. */
 @Serializable
 public data class TransactionsServiceRequest(

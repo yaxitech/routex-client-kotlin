@@ -159,6 +159,15 @@ final class RoutexClientJavaSamples {
         client.transactions(ticket, credentials);
     }
 
+    // standing-orders.adoc :: Call the service
+    static void standingOrdersCall(
+        RoutexAsyncClient client,
+        Ticket.StandingOrders ticket,
+        Credentials credentials
+    ) {
+        client.standingOrders(ticket, credentials);
+    }
+
     // collect-payment.adoc :: Call the service
     static void collectPaymentCall(
         RoutexAsyncClient client,

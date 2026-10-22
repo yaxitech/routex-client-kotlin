@@ -4,11 +4,11 @@ plugins {
 }
 
 dependencies {
-    implementation("tech.yaxi:routex-client:0.8.0")
-    implementation("tech.yaxi:routex-refresh-client:0.8.0")
-    implementation("tech.yaxi:routex-tickets:0.8.0")
+    implementation("tech.yaxi:routex-client:0.9.0")
+    implementation("tech.yaxi:routex-refresh-client:0.9.0")
+    implementation("tech.yaxi:routex-tickets:0.9.0")
     // Silence Ktor's SLF4J "no providers" warning during demo runs.
-    runtimeOnly("org.slf4j:slf4j-nop:2.0.18")
+    runtimeOnly("org.slf4j:slf4j-nop:2.0.20")
 
     testImplementation(platform("org.junit:junit-bom:6.1.3"))
     testImplementation("org.junit.jupiter:junit-jupiter")

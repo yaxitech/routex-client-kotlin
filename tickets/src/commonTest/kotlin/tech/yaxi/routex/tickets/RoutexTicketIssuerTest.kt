@@ -89,6 +89,28 @@ class RoutexTicketIssuerTest {
     }
 
     @Test
+    fun standingOrdersTicketShapesAccountOnly() {
+        val raw =
+            newIssuer()
+                .standingOrders(account = AccountReference.iban("DE02120300000000202051", "EUR"))
+                .raw
+        val data = decodeTicket(raw).second["data"]?.jsonObject ?: error("missing data claim")
+        assertEquals("StandingOrders", data["service"]?.jsonPrimitive?.content)
+
+        val ticketData = data["data"]?.jsonObject ?: error("missing data.data")
+        assertEquals(setOf("account"), ticketData.keys)
+        assertEquals("DE02120300000000202051", ticketData.iban("account"))
+        assertEquals(
+            "EUR",
+            ticketData["account"]
+                ?.jsonObject
+                ?.get("currency")
+                ?.jsonPrimitive
+                ?.content,
+        )
+    }
+
+    @Test
     fun collectPaymentTicketOmitsOptionalsByDefault() {
         val raw =
             newIssuer()

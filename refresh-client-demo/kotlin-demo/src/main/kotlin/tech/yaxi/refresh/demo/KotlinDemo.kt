@@ -81,6 +81,7 @@ private fun printBalances(balances: Balances) {
             when (val id = perAccount.account.id) {
                 is AccountIdentifier.Iban -> id.value
                 is AccountIdentifier.Number -> id.value
+                is AccountIdentifier.MaskedPan -> id.value
             }
         for (balance in perAccount.balances) {
             println(

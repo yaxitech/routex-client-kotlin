@@ -15,6 +15,7 @@ import tech.yaxi.routex.client.internal.prepareAccountsWithoutCredentials
 import tech.yaxi.routex.client.internal.prepareBalances
 import tech.yaxi.routex.client.internal.prepareBalancesWithoutCredentials
 import tech.yaxi.routex.client.internal.prepareCollectPayment
+import tech.yaxi.routex.client.internal.prepareStandingOrders
 import tech.yaxi.routex.client.internal.prepareTransactions
 import tech.yaxi.routex.client.internal.prepareTransactionsWithoutCredentials
 import tech.yaxi.routex.client.internal.prepareTransfer
@@ -46,6 +47,8 @@ import tech.yaxi.routex.models.RoutexError
 import tech.yaxi.routex.models.RoutexJson
 import tech.yaxi.routex.models.SearchFilter
 import tech.yaxi.routex.models.Session
+import tech.yaxi.routex.models.StandingOrdersResult
+import tech.yaxi.routex.models.StandingOrdersServiceRequest
 import tech.yaxi.routex.models.Ticket
 import tech.yaxi.routex.models.TraceId
 import tech.yaxi.routex.models.TransactionsResult
@@ -68,8 +71,8 @@ import tech.yaxi.routex.transport.defaultHttpTransport
 
 /**
  * Kotlin client for the YAXI Open Banking interactive services: [accounts], [balances],
- * [collectPayment], [transactions], [transfer], plus the discovery endpoints [info] and
- * [search].
+ * [collectPayment], [standingOrders], [transactions], [transfer], plus the discovery
+ * endpoints [info] and [search].
  *
  * Every service call returns a typed [Response]. A [Response.Result] holds an
  * [Authenticated][tech.yaxi.routex.models.Authenticated] JWT carrying the typed
@@ -368,6 +371,27 @@ public class RoutexClient internal constructor(
     }
 
     /**
+     * Invoke the standing-orders service: fetch the standing orders of the ticket's
+     * account authorized by [credentials].
+     *
+     * @see <a href="https://docs.yaxi.tech/standing-orders.html">Standing-orders service reference</a>
+     */
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
+    public suspend fun standingOrders(
+        ticket: Ticket.StandingOrders,
+        credentials: Credentials,
+        session: Session? = null,
+        recurringConsents: Boolean = false,
+    ): Response<StandingOrdersResult> {
+        val body = prepareStandingOrders(credentials, session, recurringConsents)
+        val bytes = encodeRequestBody(StandingOrdersServiceRequest.serializer(), body)
+        return decode(
+            core.request(ticket, "standing-orders/service", bytes),
+            StandingOrdersResult.serializer(),
+        )
+    }
+
+    /**
      * Invoke the transactions service: fetch the booked-and-pending transaction list
      * authorized by [credentials].
      *
@@ -507,6 +531,24 @@ public class RoutexClient internal constructor(
         respond("transactions", ticket, context, response, TransactionsResult.serializer())
 
     /**
+     * Continue a standing-orders flow by submitting the user's answer to a
+     * [Response.Dialog].
+     *
+     * @param context [InputContext] taken from the dialog's input on the prior
+     *   [Response.Dialog].
+     * @param response The user's answer; see
+     *   [DialogInput][tech.yaxi.routex.models.DialogInput] for the format expected by
+     *   each input variant.
+     */
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
+    public suspend fun respondStandingOrders(
+        ticket: Ticket.StandingOrders,
+        context: InputContext,
+        response: String,
+    ): Response<StandingOrdersResult> =
+        respond("standing-orders", ticket, context, response, StandingOrdersResult.serializer())
+
+    /**
      * Continue a collect-payment flow by submitting the user's answer to a
      * [Response.Dialog].
      *
@@ -580,6 +622,19 @@ public class RoutexClient internal constructor(
         ticket: Ticket.Transactions,
         context: ConfirmationContext,
     ): Response<TransactionsResult> = confirm("transactions", ticket, context, TransactionsResult.serializer())
+
+    /**
+     * Continue a standing-orders flow paused on a confirmation [Response.Dialog],
+     * [Response.Redirect], or [Response.RedirectHandle].
+     *
+     * @param context [ConfirmationContext] taken from the [Response.Dialog],
+     *   [Response.Redirect], or [Response.RedirectHandle] returned by the prior call.
+     */
+    @Throws(RoutexError::class, RoutexClientError::class, HttpError::class, CancellationException::class)
+    public suspend fun confirmStandingOrders(
+        ticket: Ticket.StandingOrders,
+        context: ConfirmationContext,
+    ): Response<StandingOrdersResult> = confirm("standing-orders", ticket, context, StandingOrdersResult.serializer())
 
     /**
      * Continue a collect-payment flow paused on a confirmation [Response.Dialog],

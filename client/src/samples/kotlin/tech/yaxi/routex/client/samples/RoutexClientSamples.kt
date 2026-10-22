@@ -170,6 +170,15 @@ internal object RoutexClientSamples {
         client.transactions(ticket, credentials)
     }
 
+    // standing-orders.adoc :: Call the service
+    suspend fun standingOrdersCall(
+        client: RoutexClient,
+        ticket: Ticket.StandingOrders,
+        credentials: Credentials,
+    ) {
+        client.standingOrders(ticket, credentials)
+    }
+
     // collect-payment.adoc :: Call the service
     suspend fun collectPaymentCall(
         client: RoutexClient,

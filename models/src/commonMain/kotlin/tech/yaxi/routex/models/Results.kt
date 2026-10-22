@@ -40,6 +40,15 @@ public data class TransactionsResult internal constructor(
     public override val timestamp: Instant,
 ) : RoutexResult<List<Transaction>?>
 
+/** Authenticated result of a successful standing-orders service call. */
+@ConsistentCopyVisibility
+@Serializable
+public data class StandingOrdersResult internal constructor(
+    public override val data: List<StandingOrder>,
+    public override val ticketId: Uuid,
+    public override val timestamp: Instant,
+) : RoutexResult<List<StandingOrder>>
+
 /** Authenticated result of a successful collect-payment service call. */
 @ConsistentCopyVisibility
 @Serializable

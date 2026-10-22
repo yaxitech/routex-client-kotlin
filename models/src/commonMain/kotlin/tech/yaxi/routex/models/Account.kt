@@ -11,7 +11,7 @@ import kotlinx.serialization.Serializable
  *
  * @property iban ISO 20022 IBAN2007Identifier.
  * @property number Account number that is not an IBAN, for example an ISO 20022
- *   BBANIdentifier or the primary account number (PAN) of a card account.
+ *   BBANIdentifier.
  * @property bic ISO 20022 BICFIIdentifier.
  * @property bankCode National bank code.
  * @property currency ISO 4217 Alpha 3 currency code.
@@ -21,6 +21,7 @@ import kotlinx.serialization.Serializable
  * @property productName Product name.
  * @property status Account status.
  * @property type Account type.
+ * @property maskedPan Masked payment card number.
  */
 @ConsistentCopyVisibility
 @Serializable
@@ -36,6 +37,7 @@ public data class Account internal constructor(
     public val productName: String? = null,
     public val status: AccountStatus? = null,
     public val type: AccountType? = null,
+    public val maskedPan: String? = null,
 ) {
     public companion object {
         /**

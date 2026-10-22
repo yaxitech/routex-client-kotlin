@@ -40,5 +40,5 @@ The consent half is included here so the demo is self-contained.
 ## Pick your language
 
 `java-demo/` targets JDK 21 and uses `RoutexRefreshAsyncClient` (`CompletableFuture`).
-`kotlin-demo/` uses Kotlin 2.3 and `RoutexRefreshClient` (`suspend`).
+`kotlin-demo/` uses Kotlin 2.4 and `RoutexRefreshClient` (`suspend`).
 Each module is fully self-contained; copy whichever fits your stack.

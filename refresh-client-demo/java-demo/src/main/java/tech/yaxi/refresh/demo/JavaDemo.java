@@ -85,6 +85,7 @@ public final class JavaDemo {
                 switch (perAccount.getAccount().getId()) {
                     case AccountIdentifier.Iban i -> i.getValue();
                     case AccountIdentifier.Number n -> n.getValue();
+                    case AccountIdentifier.MaskedPan m -> m.getValue();
                     default -> throw new IllegalStateException("unexpected account identifier");
                 };
             for (var balance : perAccount.getBalances()) {

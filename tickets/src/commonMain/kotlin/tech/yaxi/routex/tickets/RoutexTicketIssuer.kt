@@ -124,6 +124,14 @@ public class RoutexTicketIssuer internal constructor(
         return issue(TransactionsService(TransactionsTicketData(account, range, webhook)), ttl, ticketId)
     }
 
+    /** Issue a ticket for the standing-orders service against [account]. */
+    @JvmOverloads
+    public fun standingOrders(
+        account: AccountReference,
+        ticketId: Uuid = Uuid.random(),
+        ttl: Duration? = null,
+    ): Ticket.StandingOrders = issue(StandingOrdersService(StandingOrdersTicketData(account)), ttl, ticketId)
+
     /**
      * Issue a ticket for the collect-payment service.
      *

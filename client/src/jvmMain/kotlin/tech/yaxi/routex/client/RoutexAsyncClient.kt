@@ -29,6 +29,7 @@ import tech.yaxi.routex.models.PaymentProduct
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.SearchFilter
 import tech.yaxi.routex.models.Session
+import tech.yaxi.routex.models.StandingOrdersResult
 import tech.yaxi.routex.models.Ticket
 import tech.yaxi.routex.models.TraceId
 import tech.yaxi.routex.models.TransactionsResult
@@ -324,6 +325,21 @@ public class RoutexAsyncClient private constructor(
         scope.future { delegate.collectPayment(ticket, credentials, account, session, recurringConsents) }
 
     /**
+     * Invoke the standing-orders service: fetch the standing orders of the ticket's
+     * account authorized by [credentials].
+     *
+     * @see <a href="https://docs.yaxi.tech/standing-orders.html">Standing-orders service reference</a>
+     */
+    @JvmOverloads
+    public fun standingOrders(
+        ticket: Ticket.StandingOrders,
+        credentials: Credentials,
+        session: Session? = null,
+        recurringConsents: Boolean = false,
+    ): CompletableFuture<Response<StandingOrdersResult>> =
+        scope.future { delegate.standingOrders(ticket, credentials, session, recurringConsents) }
+
+    /**
      * Invoke the transactions service: fetch the booked-and-pending transaction list
      * authorized by [credentials].
      *
@@ -455,6 +471,23 @@ public class RoutexAsyncClient private constructor(
         scope.future { delegate.respondTransactions(ticket, context, response) }
 
     /**
+     * Continue a standing-orders flow by submitting the user's answer to a
+     * [Response.Dialog].
+     *
+     * @param context [InputContext] taken from the dialog's input on the prior
+     *   [Response.Dialog].
+     * @param response The user's answer; see
+     *   [DialogInput][tech.yaxi.routex.models.DialogInput] for the format expected by
+     *   each input variant.
+     */
+    public fun respondStandingOrders(
+        ticket: Ticket.StandingOrders,
+        context: InputContext,
+        response: String,
+    ): CompletableFuture<Response<StandingOrdersResult>> =
+        scope.future { delegate.respondStandingOrders(ticket, context, response) }
+
+    /**
      * Continue a collect-payment flow by submitting the user's answer to a
      * [Response.Dialog].
      *
@@ -533,6 +566,19 @@ public class RoutexAsyncClient private constructor(
         ticket: Ticket.Transactions,
         context: ConfirmationContext,
     ): CompletableFuture<Response<TransactionsResult>> = scope.future { delegate.confirmTransactions(ticket, context) }
+
+    /**
+     * Continue a standing-orders flow paused on a confirmation [Response.Dialog],
+     * [Response.Redirect], or [Response.RedirectHandle].
+     *
+     * @param context [ConfirmationContext] taken from the [Response.Dialog],
+     *   [Response.Redirect], or [Response.RedirectHandle] returned by the prior call.
+     */
+    public fun confirmStandingOrders(
+        ticket: Ticket.StandingOrders,
+        context: ConfirmationContext,
+    ): CompletableFuture<Response<StandingOrdersResult>> =
+        scope.future { delegate.confirmStandingOrders(ticket, context) }
 
     /**
      * Continue a collect-payment flow paused on a confirmation [Response.Dialog],

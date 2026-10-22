@@ -28,8 +28,15 @@ public sealed class AccountField<ValueType> {
         override fun notEq(value: String?): AccountFilter = nullableNotEq(this, value)
     }
 
-    /** Non-IBAN account number, e.g. ISO 20022 BBANIdentifier or card PAN. */
+    /** Non-IBAN account number, e.g. ISO 20022 BBANIdentifier. */
     public data object Number : AccountField<String?>() {
+        override fun eq(value: String?): AccountFilter = nullableEq(this, value)
+
+        override fun notEq(value: String?): AccountFilter = nullableNotEq(this, value)
+    }
+
+    /** Masked payment card number. */
+    public data object MaskedPan : AccountField<String?>() {
         override fun eq(value: String?): AccountFilter = nullableEq(this, value)
 
         override fun notEq(value: String?): AccountFilter = nullableNotEq(this, value)
@@ -120,6 +127,7 @@ public object AccountFieldSerializer : KSerializer<AccountField<*>> {
         listOf(
             "Iban" to AccountField.Iban,
             "Number" to AccountField.Number,
+            "MaskedPan" to AccountField.MaskedPan,
             "Bic" to AccountField.Bic,
             "BankCode" to AccountField.BankCode,
             "Currency" to AccountField.Currency,

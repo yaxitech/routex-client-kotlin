@@ -227,7 +227,8 @@ public data class ProviderError internal constructor(
 
 /**
  * The requested resource was not found. On
- * [transactions][tech.yaxi.routex.client.RoutexClient.transactions] this
+ * [transactions][tech.yaxi.routex.client.RoutexClient.transactions] and
+ * [standingOrders][tech.yaxi.routex.client.RoutexClient.standingOrders] this
  * typically means the supplied [AccountReference] is unknown to the bank: verify
  * the reference. [info][tech.yaxi.routex.client.RoutexClient.info] and
  * [trace][tech.yaxi.routex.client.RoutexClient.trace] also raise this.

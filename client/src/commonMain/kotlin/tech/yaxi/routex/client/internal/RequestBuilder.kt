@@ -15,6 +15,7 @@ import tech.yaxi.routex.models.NonInteractiveBalancesRequest
 import tech.yaxi.routex.models.NonInteractiveTransactionsRequest
 import tech.yaxi.routex.models.PaymentProduct
 import tech.yaxi.routex.models.Session
+import tech.yaxi.routex.models.StandingOrdersServiceRequest
 import tech.yaxi.routex.models.TransactionsServiceRequest
 import tech.yaxi.routex.models.TransferDetails
 import tech.yaxi.routex.models.TransferServiceRequest
@@ -96,6 +97,17 @@ internal fun prepareCollectPayment(
         session = session,
         recurringConsents = recurringConsents,
         account = account,
+    )
+
+internal fun prepareStandingOrders(
+    credentials: Credentials,
+    session: Session?,
+    recurringConsents: Boolean,
+): StandingOrdersServiceRequest =
+    StandingOrdersServiceRequest(
+        credentials = credentials,
+        session = session,
+        recurringConsents = recurringConsents,
     )
 
 internal fun prepareTransactions(

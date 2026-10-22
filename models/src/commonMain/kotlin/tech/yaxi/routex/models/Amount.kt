@@ -24,11 +24,9 @@ public data class Amount(
     /**
      * Convenience constructor that parses [amount] as a decimal, preserving the
      * original number of fractional digits (e.g. `Amount("100.00", "EUR")` keeps the
-     * two trailing zeros). Accepts whatever
-     * [BigDecimal.parseString][com.ionspin.kotlin.bignum.decimal.BigDecimal.parseString]
-     * accepts; non-canonical inputs are normalized on the wire. Callers needing
-     * byte-exact control should construct a [BigDecimal] themselves and use the
-     * primary constructor.
+     * two trailing zeros). Accepts plain and scientific notation; non-canonical
+     * inputs are normalized on the wire. Callers needing byte-exact control should
+     * construct a [BigDecimal] themselves and use the primary constructor.
      *
      * @throws IllegalArgumentException if [amount] is not parseable as a decimal.
      */
@@ -55,11 +53,21 @@ public object DecimalSerializer : KSerializer<BigDecimal> {
 
 /**
  * Parses a decimal string into a [BigDecimal], setting the scale to the number of
- * digits after the decimal point so the value round-trips through [DecimalSerializer]
- * with the same fractional-digit count.
+ * digits after the decimal point, less any exponent, so the value round-trips through
+ * [DecimalSerializer] with the same fractional-digit count.
  */
 private fun parseScaledDecimal(text: String): BigDecimal {
-    val parsed = BigDecimal.parseString(text)
-    val dot = text.indexOf('.')
-    return if (dot >= 0) parsed.scale((text.length - dot - 1).toLong()) else parsed
+    val match = requireNotNull(decimalRegex.matchEntire(text)) { "Invalid decimal: $text" }
+    val (mantissa, exponent) = match.destructured
+    val digits = mantissa.replace("_", "")
+    val parsed = BigDecimal.parseString(digits)
+    if ('.' !in digits && exponent.isEmpty()) return parsed
+    val shift = if (exponent.isEmpty()) 0L else exponent.replace("+", "").toLong()
+    require(shift in -MAX_EXPONENT..MAX_EXPONENT) { "Exponent out of range: $text" }
+    val scale = digits.substringAfter('.', "").length - shift
+    return parsed.moveDecimalPoint(shift).scale(scale.coerceAtLeast(0))
 }
+
+private const val MAX_EXPONENT = 28L
+
+private val decimalRegex = Regex("""([+-]?(?:\d[\d_]*(?:\.[\d_]*)?|\.\d[\d_]*))(?:[eE](-?\+?\d+))?""")

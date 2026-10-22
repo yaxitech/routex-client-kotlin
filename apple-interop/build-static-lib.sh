@@ -15,6 +15,7 @@ package_dir=$(cd "$(dirname "$0")" && pwd)
 swift build \
   --package-path "$package_dir" \
   --configuration release \
+  --build-system native \
   --triple "$triple" \
   --sdk "$(xcrun --sdk "$sdk" --show-sdk-path)"
 
