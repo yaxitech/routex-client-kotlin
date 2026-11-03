@@ -1,6 +1,6 @@
 plugins {
     application
-    kotlin("jvm") version "2.4.20"
+    kotlin("jvm") version "2.4.21"
 }
 
 kotlin {
@@ -10,9 +10,9 @@ kotlin {
 }
 
 dependencies {
-    implementation("tech.yaxi:routex-client:0.9.0")
-    implementation("tech.yaxi:routex-refresh-client:0.9.0")
-    implementation("tech.yaxi:routex-tickets:0.9.0")
+    implementation("tech.yaxi:routex-client:0.9.1")
+    implementation("tech.yaxi:routex-refresh-client:0.9.1")
+    implementation("tech.yaxi:routex-tickets:0.9.1")
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.11.0")
     // Silence Ktor's SLF4J "no providers" warning during demo runs.
     runtimeOnly("org.slf4j:slf4j-nop:2.0.20")

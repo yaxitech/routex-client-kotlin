@@ -1,5 +1,16 @@
 # Changelog
 
+## [0.9.1] - 2026-11-03
+
+### Changed
+
+- `traceId` is reset with every request, so it is empty if a request fails without a response
+- Updated dependencies: Android Gradle Plugin 9.5.0.
+
+### Security
+
+- Key settlement uses hybrid X25519 + ML-KEM-768 (FIPS 203) post-quantum key exchange; Apple targets below iOS and macOS 26 use X25519 only.
+
 ## [0.9.0] - 2026-10-22
 
 ### Added

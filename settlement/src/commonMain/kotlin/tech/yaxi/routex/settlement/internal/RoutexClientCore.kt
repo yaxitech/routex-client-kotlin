@@ -55,7 +55,8 @@ public class RoutexClientCore(
 
     /**
      * Trace identifier echoed by the most recent request, decoded from the
-     * `yaxi-trace-id` response header. `null` until at least one request completes.
+     * `yaxi-trace-id` response header. `null` if that request got no response or
+     * the response carried no trace id.
      */
     public val traceId: TraceId?
         get() = lastTraceId
@@ -90,6 +91,7 @@ public class RoutexClientCore(
         path: String,
         body: ByteArray?,
     ): ByteArray {
+        lastTraceId = null
         val ticketId = ticket.id.toString()
         val settlement = getOrCreateSettlement(ticketId)
         val settle = settle(settlement, ticketId)

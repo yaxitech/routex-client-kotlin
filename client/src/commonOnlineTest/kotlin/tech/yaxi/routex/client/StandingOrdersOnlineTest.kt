@@ -40,7 +40,7 @@ class StandingOrdersOnlineTest {
             val response = client.standingOrders(ticket = ticket, credentials = credentials)
             val payload = assertIs<Response.Result<StandingOrdersResult>>(response).authenticated.decodeUnverified()
             assertEquals(ticket.id, payload.ticketId)
-            assertEquals(2, payload.data.size)
+            assertEquals(4, payload.data.size)
 
             val (rent, broadcasting) = payload.data
             assertEquals(LocalDate(2023, 2, 1), rent.startDate)

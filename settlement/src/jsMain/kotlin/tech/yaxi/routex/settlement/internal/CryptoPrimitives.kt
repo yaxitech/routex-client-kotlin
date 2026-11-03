@@ -1,7 +1,5 @@
 package tech.yaxi.routex.settlement.internal
 
-import org.khronos.webgl.Uint8Array
-
 internal actual fun sha256(bytes: ByteArray): ByteArray = NobleSha2.sha256(bytes.toUint8Array()).toKotlinByteArray()
 
 internal actual fun blake2bDigest(
@@ -16,6 +14,7 @@ internal actual fun blake2bDigest(
 
 internal actual fun hkdfBlake2b512(
     ikm: ByteArray,
+    salt: ByteArray,
     info: ByteArray,
     length: Int,
 ): ByteArray {
@@ -27,7 +26,7 @@ internal actual fun hkdfBlake2b512(
         .hkdf(
             blake2b64Factory,
             ikm.toUint8Array(),
-            Uint8Array(0),
+            salt.toUint8Array(),
             info.toUint8Array(),
             length,
         ).toKotlinByteArray()
@@ -66,6 +65,37 @@ internal actual fun x25519GenerateKeyPair(): X25519Keys {
     return X25519Keys(
         secret = secretKey.toKotlinByteArray(),
         public = NobleCurvesEd25519.x25519.getPublicKey(secretKey).toKotlinByteArray(),
+    )
+}
+
+internal actual fun secureRandomBytes(length: Int): ByteArray = NobleHashUtils.randomBytes(length).toKotlinByteArray()
+
+internal actual fun mlKem768IsAvailable(): Boolean = true
+
+internal actual fun mlKem768KeyPair(seed: ByteArray): MlKem768KeyPair {
+    val keys = NobleMlKem.mlKem768.keygen(seed.toUint8Array())
+    return object : MlKem768KeyPair {
+        override val encapsulationKey: ByteArray = keys.publicKey.toKotlinByteArray()
+
+        override fun decapsulate(ciphertext: ByteArray): ByteArray =
+            NobleMlKem.mlKem768.decapsulate(ciphertext.toUint8Array(), keys.secretKey).toKotlinByteArray()
+    }
+}
+
+internal actual fun mlKem768IsValidEncapsulationKey(encapsulationKey: ByteArray): Boolean =
+    try {
+        // The encapsulation key check runs as part of encapsulation.
+        NobleMlKem.mlKem768.encapsulate(encapsulationKey.toUint8Array())
+        true
+    } catch (_: Throwable) {
+        false
+    }
+
+internal actual fun mlKem768Encapsulate(encapsulationKey: ByteArray): MlKem768Encapsulation {
+    val encapsulated = NobleMlKem.mlKem768.encapsulate(encapsulationKey.toUint8Array())
+    return MlKem768Encapsulation(
+        ciphertext = encapsulated.cipherText.toKotlinByteArray(),
+        sharedSecret = encapsulated.sharedSecret.toKotlinByteArray(),
     )
 }
 

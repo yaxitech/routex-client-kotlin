@@ -110,9 +110,10 @@ class RoutexClientJavaSmokeTest {
              CloseableHttpClient http = newRedirectVisitor()) {
             Credentials credentials = new Credentials(new ConnectionId(DEMO_CONNECTION_ID), "random");
 
+            LocalDate rangeFrom = kotlinx.datetime.ConvertersKt.toKotlinLocalDate(java.time.LocalDate.now().minusDays(179));
             Ticket.Transactions ticket = newIssuer().transactions(
                     AccountReference.iban(DEMO_IBAN, "EUR"),
-                    new Range.Period(new LocalDate(2019, 1, 13), null));
+                    new Range.Period(rangeFrom, null));
             Uuid ticketId = ticket.getId();
 
             ServiceOps<TransactionsResult> ops = new ServiceOps<>() {

@@ -17,9 +17,10 @@ internal expect fun blake2bDigest(
     outLen: Int,
 ): ByteArray
 
-/** HKDF-Blake2b-512 with empty salt. */
+/** HKDF-Blake2b-512. An empty [salt] stands for the RFC 5869 default. */
 internal expect fun hkdfBlake2b512(
     ikm: ByteArray,
+    salt: ByteArray,
     info: ByteArray,
     length: Int,
 ): ByteArray
@@ -64,6 +65,32 @@ internal data class X25519Keys(
 
     override fun hashCode(): Int = secret.contentHashCode() * 31 + public.contentHashCode()
 }
+
+/** [length] bytes from a cryptographically secure random number generator. */
+internal expect fun secureRandomBytes(length: Int): ByteArray
+
+/** Whether this platform supports the ML-KEM-768 primitives below; false on Apple below OS 26. */
+internal expect fun mlKem768IsAvailable(): Boolean
+
+/** ML-KEM-768 key pair generated from the 64-byte FIPS 203 key generation seed `d || z`. */
+internal expect fun mlKem768KeyPair(seed: ByteArray): MlKem768KeyPair
+
+internal interface MlKem768KeyPair {
+    val encapsulationKey: ByteArray
+
+    fun decapsulate(ciphertext: ByteArray): ByteArray
+}
+
+/** Whether [encapsulationKey] passes the FIPS 203 encapsulation key check (section 7.2). */
+internal expect fun mlKem768IsValidEncapsulationKey(encapsulationKey: ByteArray): Boolean
+
+/** ML-KEM-768 encapsulation; throws if [encapsulationKey] fails the FIPS 203 encapsulation key check. */
+internal expect fun mlKem768Encapsulate(encapsulationKey: ByteArray): MlKem768Encapsulation
+
+internal class MlKem768Encapsulation(
+    val ciphertext: ByteArray,
+    val sharedSecret: ByteArray,
+)
 
 /** Ed25519 signature verification. [publicKey] is a raw 32-byte Ed25519 key. */
 internal expect fun ed25519Verify(

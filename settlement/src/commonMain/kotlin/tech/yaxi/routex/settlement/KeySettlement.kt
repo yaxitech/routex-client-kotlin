@@ -83,20 +83,17 @@ internal object KeySettlement {
         val plaintext =
             try {
                 ChaChaBox.unseal(clientKeys, chachaBoxBytes)
-            } catch (e: ChaChaBoxDecryptError) {
+            } catch (e: ChaChaBoxError) {
                 throw KeySettlementError.ChachaBoxDecryptFailed(
                     "chacha box decryption failed: ${e.message}",
                     e,
                 )
             }
-        val (serverPublicKey, sessionId) =
-            when (clientKeys) {
-                is ChaChaBoxKeys.V1 -> decodeSealedPayloadV1(plaintext)
-            }
+        val (serverPublicKey, sessionId) = decodeSealedPayload(plaintext)
         return SettleResult(serverPublicKey, sessionId, response.systemVersion)
     }
 
-    private fun decodeSealedPayloadV1(plaintext: ByteArray): Pair<ChaChaBoxPublicKey, String> {
+    private fun decodeSealedPayload(plaintext: ByteArray): Pair<ChaChaBoxPublicKey, String> {
         val text = plaintext.decodeToString()
         val obj =
             try {
@@ -122,7 +119,16 @@ internal object KeySettlement {
                     cause = e,
                 )
             }
-        return ChaChaBoxPublicKey.V1(serverPublic) to sessionId
+        val serverPublicKey =
+            try {
+                ChaChaBoxPublicKey.fromBytes(serverPublic)
+            } catch (e: IllegalArgumentException) {
+                throw KeySettlementError.InvalidSealedPayload(
+                    "sealed payload publicKey is invalid: ${e.message}",
+                    cause = e,
+                )
+            }
+        return serverPublicKey to sessionId
     }
 
     private fun decodeResponse(responseBytes: ByteArray): SettlementResponse {

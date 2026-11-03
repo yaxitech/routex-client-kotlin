@@ -5,13 +5,26 @@
 
 NS_ASSUME_NONNULL_BEGIN
 
+@interface RTXMLKEM768KeyPair : NSObject
+
+- (instancetype)init NS_UNAVAILABLE;
+
+@property(nonatomic, readonly) NSData *encapsulationKey;
+
+- (nullable NSData *)decapsulate:(NSData *)ciphertext error:(NSError **)error;
+
+@end
+
 @interface RTXCryptoPrimitives : NSObject
 
 - (instancetype)init NS_UNAVAILABLE;
 
 + (NSData *)sha256:(NSData *)data;
 + (NSData *)blake2b:(NSData *)message outputLength:(NSInteger)outputLength;
-+ (NSData *)hkdfBlake2b512WithIkm:(NSData *)ikm info:(NSData *)info length:(NSInteger)length;
++ (NSData *)hkdfBlake2b512WithIkm:(NSData *)ikm
+                             salt:(NSData *)salt
+                             info:(NSData *)info
+                           length:(NSInteger)length;
 + (nullable NSData *)chacha20Poly1305SealWithKey:(NSData *)key
                                            nonce:(NSData *)nonce
                                        plaintext:(NSData *)plaintext
@@ -25,6 +38,12 @@ NS_ASSUME_NONNULL_BEGIN
                                             error:(NSError **)error;
 + (NSData *)x25519GenerateSecretKey;
 + (nullable NSData *)x25519PublicKeyForSecret:(NSData *)secret error:(NSError **)error;
++ (NSData *)randomBytes:(NSInteger)length;
++ (BOOL)mlKem768IsAvailable;
++ (nullable RTXMLKEM768KeyPair *)mlKem768KeyPairForSeed:(NSData *)seed error:(NSError **)error;
++ (BOOL)mlKem768IsValidEncapsulationKey:(NSData *)encapsulationKey;
++ (nullable NSData *)mlKem768EncapsulateWithEncapsulationKey:(NSData *)encapsulationKey
+                                                       error:(NSError **)error;
 + (BOOL)ed25519VerifyWithPublicKey:(NSData *)publicKey
                            message:(NSData *)message
                          signature:(NSData *)signature;

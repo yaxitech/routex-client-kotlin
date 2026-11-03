@@ -59,6 +59,27 @@ internal external interface JsP384 {
     ): Boolean
 }
 
+internal external interface JsMlKemKeyPair {
+    public val publicKey: Uint8Array
+    public val secretKey: Uint8Array
+}
+
+internal external interface JsMlKemEncapsulation {
+    public val cipherText: Uint8Array
+    public val sharedSecret: Uint8Array
+}
+
+internal external interface JsMlKem {
+    public fun keygen(seed: Uint8Array): JsMlKemKeyPair
+
+    public fun encapsulate(publicKey: Uint8Array): JsMlKemEncapsulation
+
+    public fun decapsulate(
+        cipherText: Uint8Array,
+        secretKey: Uint8Array,
+    ): Uint8Array
+}
+
 internal external interface PeculiarExtension {
     public val type: String
     public val value: dynamic
@@ -88,6 +109,8 @@ internal external object NobleHkdf {
 @JsModule("@noble/hashes/utils.js")
 internal external object NobleHashUtils {
     public fun createHasher(fn: () -> Blake2bHasher): dynamic
+
+    public fun randomBytes(length: Int): Uint8Array
 }
 
 @JsModule("@noble/ciphers/chacha.js")
@@ -107,6 +130,12 @@ internal external object NobleCurvesEd25519 {
 @JsModule("@noble/curves/nist.js")
 internal external object NobleCurvesNist {
     public val p384: JsP384
+}
+
+@JsModule("@noble/post-quantum/ml-kem.js")
+internal external object NobleMlKem {
+    @JsName("ml_kem768")
+    public val mlKem768: JsMlKem
 }
 
 @JsModule("@peculiar/x509")

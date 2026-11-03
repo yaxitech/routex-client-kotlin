@@ -102,6 +102,7 @@ kotlin {
                 implementation(npm("@noble/ciphers", "^2.0.0"))
                 implementation(npm("@noble/curves", "^2.0.0"))
                 implementation(npm("@noble/hashes", "^2.0.0"))
+                implementation(npm("@noble/post-quantum", "^0.7.1"))
                 implementation(npm("@peculiar/asn1-schema", "^2.3.15"))
                 implementation(npm("@peculiar/asn1-x509", "^2.3.15"))
                 implementation(npm("@peculiar/x509", "^1.12.3"))

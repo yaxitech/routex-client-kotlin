@@ -33,12 +33,11 @@ class SearchOnlineTest {
                 results.any { it.id == ConnectionId("connection-3c0ec6db-f1e0-4bfb-be0b-4e5af8a7ad4e") },
                 "expected Sparkasse Duderstadt in results",
             )
-            assertTrue(
-                results.all { it.logoId == "sparkasse" },
-                "all results should share the sparkasse logo id: $results",
-            )
-            results.forEach {
+            results.dropLast(1).forEach {
+                assertEquals("sparkasse", it.logoId)
                 assertEquals(listOf("DE"), it.countries)
             }
+            assertEquals("erste", results.last().logoId)
+            assertEquals(listOf("AT"), results.last().countries)
         }
 }

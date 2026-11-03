@@ -6,11 +6,16 @@ import java.security.cert.CertificateFactory
 import org.bouncycastle.crypto.agreement.X25519Agreement
 import org.bouncycastle.crypto.digests.Blake2bDigest
 import org.bouncycastle.crypto.generators.HKDFBytesGenerator
+import org.bouncycastle.crypto.kems.MLKEMExtractor
+import org.bouncycastle.crypto.kems.MLKEMGenerator
 import org.bouncycastle.crypto.modes.ChaCha20Poly1305
 import org.bouncycastle.crypto.params.AEADParameters
 import org.bouncycastle.crypto.params.Ed25519PublicKeyParameters
 import org.bouncycastle.crypto.params.HKDFParameters
 import org.bouncycastle.crypto.params.KeyParameter
+import org.bouncycastle.crypto.params.MLKEMParameters
+import org.bouncycastle.crypto.params.MLKEMPrivateKeyParameters
+import org.bouncycastle.crypto.params.MLKEMPublicKeyParameters
 import org.bouncycastle.crypto.params.X25519PrivateKeyParameters
 import org.bouncycastle.crypto.params.X25519PublicKeyParameters
 import org.bouncycastle.crypto.signers.Ed25519Signer
@@ -46,11 +51,12 @@ internal actual fun blake2bDigest(
 
 internal actual fun hkdfBlake2b512(
     ikm: ByteArray,
+    salt: ByteArray,
     info: ByteArray,
     length: Int,
 ): ByteArray {
     val hkdf = HKDFBytesGenerator(Blake2bDigest(BLAKE2B_512_BITS))
-    hkdf.init(HKDFParameters(ikm, ByteArray(0), info))
+    hkdf.init(HKDFParameters(ikm, salt, info))
     val out = ByteArray(length)
     hkdf.generateBytes(out, 0, length)
     return out
@@ -101,6 +107,35 @@ internal actual fun x25519SharedSecret(
 internal actual fun x25519GenerateKeyPair(): X25519Keys {
     val priv = X25519PrivateKeyParameters(SecureRandom())
     return X25519Keys(priv.encoded, priv.generatePublicKey().encoded)
+}
+
+internal actual fun secureRandomBytes(length: Int): ByteArray = ByteArray(length).also { SecureRandom().nextBytes(it) }
+
+internal actual fun mlKem768IsAvailable(): Boolean = true
+
+internal actual fun mlKem768KeyPair(seed: ByteArray): MlKem768KeyPair {
+    val privateKey = MLKEMPrivateKeyParameters(MLKEMParameters.ml_kem_768, seed)
+    return object : MlKem768KeyPair {
+        override val encapsulationKey: ByteArray = privateKey.publicKey
+
+        override fun decapsulate(ciphertext: ByteArray): ByteArray =
+            MLKEMExtractor(privateKey).extractSecret(ciphertext)
+    }
+}
+
+internal actual fun mlKem768IsValidEncapsulationKey(encapsulationKey: ByteArray): Boolean =
+    try {
+        MLKEMPublicKeyParameters(MLKEMParameters.ml_kem_768, encapsulationKey)
+        true
+    } catch (_: IllegalArgumentException) {
+        false
+    }
+
+internal actual fun mlKem768Encapsulate(encapsulationKey: ByteArray): MlKem768Encapsulation {
+    // The public key constructor performs the encapsulation key check.
+    val publicKey = MLKEMPublicKeyParameters(MLKEMParameters.ml_kem_768, encapsulationKey)
+    val encapsulated = MLKEMGenerator(SecureRandom()).generateEncapsulated(publicKey)
+    return MlKem768Encapsulation(ciphertext = encapsulated.encapsulation, sharedSecret = encapsulated.secret)
 }
 
 internal actual fun ed25519Verify(

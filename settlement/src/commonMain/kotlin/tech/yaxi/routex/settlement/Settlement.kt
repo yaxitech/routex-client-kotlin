@@ -147,16 +147,14 @@ public class Settlement
 
         internal val clientPublicKey: ChaChaBoxPublicKey
             get() = clientKeys.publicKey
-
-        private fun settlementRequestBody(clientKeys: ChaChaBoxKeys): ByteArray {
-            val publicKey =
-                when (clientKeys) {
-                    is ChaChaBoxKeys.V1 -> clientKeys.x25519Public
-                }
-            val obj =
-                buildJsonObject {
-                    put("publicKey", Base64.Default.encode(publicKey))
-                }
-            return RoutexJson.encodeToString(JsonObject.serializer(), obj).encodeToByteArray()
-        }
     }
+
+internal fun settlementRequestBody(clientKeys: ChaChaBoxKeys): ByteArray {
+    val publicKey = clientKeys.publicKey
+    val obj =
+        buildJsonObject {
+            put("publicKey", Base64.Default.encode(publicKey.toBytes()))
+            put("version", publicKey.version)
+        }
+    return RoutexJson.encodeToString(JsonObject.serializer(), obj).encodeToByteArray()
+}

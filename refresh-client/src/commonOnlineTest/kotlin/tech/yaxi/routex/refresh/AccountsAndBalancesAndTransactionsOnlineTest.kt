@@ -5,6 +5,7 @@ import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
 import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
@@ -23,6 +24,7 @@ import tech.yaxi.routex.models.BalancesResult
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.SupportedService
+import tech.yaxi.routex.models.TransactionStatus
 import tech.yaxi.routex.models.TransactionsResult
 import tech.yaxi.routex.tickets.Range
 
@@ -142,8 +144,31 @@ class AccountsAndBalancesAndTransactionsOnlineTest {
                     .authenticated
                     .decodeUnverified()
                     .data
+
+            // The demo connection's transactions should return generated demo transactions.
             assertNotNull(interactiveTransactions)
-            assertEquals(listOf(), interactiveTransactions)
+            assertTrue(interactiveTransactions.isNotEmpty())
+            interactiveTransactions.forEach { transaction ->
+                assertTrue(transaction.amount.currency.isNotEmpty())
+
+                val creditor = assertNotNull(transaction.creditor)
+                assertNotNull(creditor.name)
+                assertNotNull(creditor.iban)
+                val debtor = assertNotNull(transaction.debtor)
+                assertNotNull(debtor.name)
+                assertNotNull(debtor.iban)
+
+                assertNotNull(transaction.bookingDate)
+                assertNotNull(transaction.valueDate)
+
+                assertTrue(
+                    transaction.status in
+                        setOf(
+                            TransactionStatus.PENDING,
+                            TransactionStatus.BOOKED,
+                        ),
+                )
+            }
 
             // Phase 2: Refresh client with connection data
             val refreshClient = OnlineTestSupport.refreshClient()

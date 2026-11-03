@@ -1,16 +1,18 @@
 package tech.yaxi.routex.client
 
-import com.ionspin.kotlin.bignum.decimal.BigDecimal
 import kotlin.test.Test
 import kotlin.test.assertEquals
 import kotlin.test.assertIs
 import kotlin.test.assertNotNull
+import kotlin.test.assertTrue
+import kotlin.time.Clock
 import kotlin.uuid.ExperimentalUuidApi
 import kotlinx.coroutines.test.runTest
-import kotlinx.datetime.LocalDate
+import kotlinx.datetime.DatePeriod
+import kotlinx.datetime.TimeZone
+import kotlinx.datetime.minus
+import kotlinx.datetime.todayIn
 import tech.yaxi.routex.models.AccountReference
-import tech.yaxi.routex.models.Amount
-import tech.yaxi.routex.models.BankTransactionCode
 import tech.yaxi.routex.models.Credentials
 import tech.yaxi.routex.models.Response
 import tech.yaxi.routex.models.TransactionStatus
@@ -24,10 +26,11 @@ class TransactionsOnlineTest {
     fun transactionsFlowReturnsCanonicalDemoPayload() =
         runTest {
             val client = OnlineTestSupport.routexClient()
+            val rangeFrom = Clock.System.todayIn(TimeZone.UTC).minus(DatePeriod(days = 89))
             val ticket =
                 OnlineTestSupport.ticketIssuer.transactions(
                     account = AccountReference.iban("DE02120300000000202051", "EUR"),
-                    range = Range.Period(LocalDate(2019, 1, 13)),
+                    range = Range.Period(from = rangeFrom),
                 )
 
             val response =
@@ -42,31 +45,29 @@ class TransactionsOnlineTest {
             val payload = assertIs<Response.Result<TransactionsResult>>(response).authenticated.decodeUnverified()
             assertEquals(ticket.id, payload.ticketId)
 
-            val txs = assertNotNull(payload.data, "expected non-null transactions list")
-            assertEquals(63, txs.size)
+            // The demo connection's transactions should return generated demo transactions.
+            val transactions = assertNotNull(payload.data, "expected non-null transactions list")
+            assertTrue(transactions.isNotEmpty())
+            transactions.forEach { transaction ->
+                assertTrue(transaction.amount.currency.isNotEmpty())
 
-            val first = txs[0]
-            assertEquals(Amount(amount = BigDecimal.parseString("-0.95"), currency = "EUR"), first.amount)
-            assertEquals(LocalDate(2025, 7, 29), first.bookingDate)
-            assertEquals(LocalDate(2025, 7, 29), first.valueDate)
-            assertEquals(TransactionStatus.BOOKED, first.status)
-            assertEquals("DCRD", first.purposeCode)
-            assertEquals("485209459755938", first.endToEndId)
-            val creditor = assertNotNull(first.creditor)
-            assertEquals("DHL.K53VEV55WWVE/BONN", creditor.name)
-            assertEquals("DE96120300009005290904", creditor.iban)
-            val debtor = assertNotNull(first.debtor)
-            assertEquals("ISSUER", debtor.name)
-            assertEquals("DE02120300000000202051", debtor.iban)
-            assertEquals(3, first.bankTransactionCodes.size)
-            val iso = assertIs<BankTransactionCode.Iso>(first.bankTransactionCodes[0])
-            assertEquals("PMNT", iso.domain)
-            assertEquals("ICDT", iso.family)
-            assertEquals("STDO", iso.subFamily)
-            assertEquals("DDT", assertIs<BankTransactionCode.Swift>(first.bankTransactionCodes[1]).value)
-            val national = assertIs<BankTransactionCode.National>(first.bankTransactionCodes[2])
-            assertEquals("106", national.code)
-            assertEquals("DE", national.country)
-            assertEquals(listOf("VISA Debitkartenumsatz"), first.remittanceInformation)
+                val creditor = assertNotNull(transaction.creditor)
+                assertNotNull(creditor.name)
+                assertNotNull(creditor.iban)
+                val debtor = assertNotNull(transaction.debtor)
+                assertNotNull(debtor.name)
+                assertNotNull(debtor.iban)
+
+                assertNotNull(transaction.bookingDate)
+                assertNotNull(transaction.valueDate)
+
+                assertTrue(
+                    transaction.status in
+                        setOf(
+                            TransactionStatus.PENDING,
+                            TransactionStatus.BOOKED,
+                        ),
+                )
+            }
         }
 }

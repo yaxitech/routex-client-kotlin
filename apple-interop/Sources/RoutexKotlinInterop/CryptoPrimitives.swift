@@ -10,6 +10,8 @@ struct InteropError: LocalizedError {
     var errorDescription: String? { message }
 }
 
+private let mlKemUnavailable = InteropError(message: "ML-KEM-768 requires iOS 26, macOS 26, or later")
+
 @objc(RTXCryptoPrimitives)
 public final class CryptoPrimitives: NSObject {
     @objc(sha256:)
@@ -22,9 +24,9 @@ public final class CryptoPrimitives: NSObject {
         Blake2b.hash(message, outputLength: outputLength)
     }
 
-    @objc(hkdfBlake2b512WithIkm:info:length:)
-    public static func hkdfBlake2b512(ikm: Data, info: Data, length: Int) -> Data {
-        HKDFBlake2b512.deriveKey(ikm: ikm, salt: Data(), info: info, length: length)
+    @objc(hkdfBlake2b512WithIkm:salt:info:length:)
+    public static func hkdfBlake2b512(ikm: Data, salt: Data, info: Data, length: Int) -> Data {
+        HKDFBlake2b512.deriveKey(ikm: ikm, salt: salt, info: info, length: length)
     }
 
     /// Returns `ciphertext || 16-byte tag`.
@@ -72,6 +74,47 @@ public final class CryptoPrimitives: NSObject {
             .publicKey.rawRepresentation
     }
 
+    @objc(randomBytes:)
+    public static func randomBytes(_ length: Int) -> Data {
+        SymmetricKey(size: SymmetricKeySize(bitCount: length * 8)).withUnsafeBytes { Data($0) }
+    }
+
+    @objc(mlKem768IsAvailable)
+    public static func mlKem768IsAvailable() -> Bool {
+        if #available(iOS 26, macOS 26, tvOS 26, watchOS 26, macCatalyst 26, visionOS 26, *) {
+            return true
+        }
+        return false
+    }
+
+    @objc(mlKem768KeyPairForSeed:error:)
+    public static func mlKem768KeyPair(forSeed seed: Data) throws -> MLKEM768KeyPair {
+        guard #available(iOS 26, macOS 26, tvOS 26, watchOS 26, macCatalyst 26, visionOS 26, *) else {
+            throw mlKemUnavailable
+        }
+        let key = try MLKEM768.PrivateKey(seedRepresentation: seed, publicKey: nil)
+        return MLKEM768KeyPair(encapsulationKey: key.publicKey.rawRepresentation) { ciphertext in
+            try key.decapsulate(ciphertext).withUnsafeBytes { Data($0) }
+        }
+    }
+
+    // CryptoKit defers the FIPS 203 encapsulation key check (section 7.2) to encapsulation.
+    @objc(mlKem768IsValidEncapsulationKey:)
+    public static func mlKem768IsValidEncapsulationKey(_ encapsulationKey: Data) -> Bool {
+        (try? mlKem768Encapsulate(encapsulationKey: encapsulationKey)) != nil
+    }
+
+    /// Returns `ciphertext || 32-byte shared secret`.
+    @objc(mlKem768EncapsulateWithEncapsulationKey:error:)
+    public static func mlKem768Encapsulate(encapsulationKey: Data) throws -> Data {
+        guard #available(iOS 26, macOS 26, tvOS 26, watchOS 26, macCatalyst 26, visionOS 26, *) else {
+            throw mlKemUnavailable
+        }
+        let result = try MLKEM768.PublicKey(rawRepresentation: encapsulationKey).encapsulate()
+        let sharedSecret = result.sharedSecret.withUnsafeBytes { Data($0) }
+        return result.encapsulated + sharedSecret
+    }
+
     @objc(ed25519VerifyWithPublicKey:message:signature:)
     public static func ed25519Verify(
         publicKey: Data, message: Data, signature: Data
@@ -80,5 +123,21 @@ public final class CryptoPrimitives: NSObject {
             return false
         }
         return key.isValidSignature(signature, for: message)
+    }
+}
+
+@objc(RTXMLKEM768KeyPair)
+public final class MLKEM768KeyPair: NSObject {
+    @objc public let encapsulationKey: Data
+    private let decapsulator: (Data) throws -> Data
+
+    init(encapsulationKey: Data, decapsulator: @escaping (Data) throws -> Data) {
+        self.encapsulationKey = encapsulationKey
+        self.decapsulator = decapsulator
+    }
+
+    @objc(decapsulate:error:)
+    public func decapsulate(_ ciphertext: Data) throws -> Data {
+        try decapsulator(ciphertext)
     }
 }

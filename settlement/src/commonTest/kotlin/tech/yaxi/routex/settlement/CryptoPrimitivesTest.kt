@@ -5,12 +5,17 @@ import kotlin.test.assertContentEquals
 import kotlin.test.assertEquals
 import kotlin.test.assertFails
 import kotlin.test.assertFalse
+import kotlin.test.assertNotEquals
 import kotlin.test.assertTrue
 import tech.yaxi.routex.settlement.internal.blake2bDigest
 import tech.yaxi.routex.settlement.internal.chacha20Poly1305Decrypt
 import tech.yaxi.routex.settlement.internal.chacha20Poly1305Encrypt
 import tech.yaxi.routex.settlement.internal.ed25519Verify
 import tech.yaxi.routex.settlement.internal.hkdfBlake2b512
+import tech.yaxi.routex.settlement.internal.mlKem768Encapsulate
+import tech.yaxi.routex.settlement.internal.mlKem768IsValidEncapsulationKey
+import tech.yaxi.routex.settlement.internal.mlKem768KeyPair
+import tech.yaxi.routex.settlement.internal.secureRandomBytes
 import tech.yaxi.routex.settlement.internal.sha256
 import tech.yaxi.routex.settlement.internal.x25519GenerateKeyPair
 import tech.yaxi.routex.settlement.internal.x25519SharedSecret
@@ -44,15 +49,15 @@ class CryptoPrimitivesTest {
 
     @Test
     fun hkdfBlake2b512MatchesKnownAnswer() {
-        val okm =
-            hkdfBlake2b512(
-                ikm = "0b0c0d0e0f101112131415161718191a1b1c1d1e1f20".hexToBytes(),
-                info = "f0f1f2f3f4f5f6f7f8f9".hexToBytes(),
-                length = 42,
-            )
+        val ikm = "0b0c0d0e0f101112131415161718191a1b1c1d1e1f20".hexToBytes()
+        val info = "f0f1f2f3f4f5f6f7f8f9".hexToBytes()
         assertEquals(
             "af39a42f4e8f8cbcf7bfa5511f0217c9d738664174046e83ca6b4765c6b8438926699931cee7226c0ce4",
-            okm.toHex(),
+            hkdfBlake2b512(ikm, salt = ByteArray(0), info, length = 42).toHex(),
+        )
+        assertEquals(
+            "cfaa790d5278a64d5b282bfb38cecb14d43a3f044c2d4b7b67ad851680dbd254ee046b9aa8b493c47b91",
+            hkdfBlake2b512(ikm, salt = ByteArray(13) { it.toByte() }, info, length = 42).toHex(),
         )
     }
 
@@ -79,6 +84,55 @@ class CryptoPrimitivesTest {
         assertEquals(32, aliceShared.size)
         assertContentEquals(aliceShared, bobShared)
     }
+
+    @Test
+    fun secureRandomBytesAreFresh() {
+        val a = secureRandomBytes(32)
+        assertEquals(32, a.size)
+        assertFalse(a.contentEquals(secureRandomBytes(32)))
+    }
+
+    @Test
+    fun mlKem768EncapsulationKeyMatchesKnownAnswer() =
+        withMlKem {
+            val encapsulationKey = mlKem768KeyPair(ByteArray(64) { it.toByte() }).encapsulationKey
+            assertEquals(1184, encapsulationKey.size)
+            assertEquals(
+                "0b7934c83125c788995e2ba6bd761e33046b3e40571be53e023309a29f398cc9",
+                sha256(encapsulationKey).toHex(),
+            )
+        }
+
+    @Test
+    fun mlKem768EncapsulationRoundTrips() =
+        withMlKem {
+            val keyPair = mlKem768KeyPair(secureRandomBytes(64))
+            val encapsulated = mlKem768Encapsulate(keyPair.encapsulationKey)
+            assertEquals(1088, encapsulated.ciphertext.size)
+            assertEquals(32, encapsulated.sharedSecret.size)
+            assertContentEquals(encapsulated.sharedSecret, keyPair.decapsulate(encapsulated.ciphertext))
+
+            // A tampered ciphertext decapsulates to an unrelated secret (implicit rejection).
+            val tampered = encapsulated.ciphertext.copyOf().also { it[0] = (it[0].toInt() xor 1).toByte() }
+            assertNotEquals(encapsulated.sharedSecret.toHex(), keyPair.decapsulate(tampered).toHex())
+        }
+
+    @Test
+    fun mlKem768RejectsInvalidEncapsulationKeys() =
+        withMlKem {
+            val encapsulationKey = mlKem768KeyPair(secureRandomBytes(64)).encapsulationKey
+            assertTrue(mlKem768IsValidEncapsulationKey(encapsulationKey))
+
+            // Lift the first 12-bit coefficient to 0xfff, beyond the modulus q = 3329.
+            val invalid =
+                encapsulationKey.copyOf().also {
+                    it[0] = 0xff.toByte()
+                    it[1] = (it[1].toInt() or 0x0f).toByte()
+                }
+            assertFalse(mlKem768IsValidEncapsulationKey(invalid))
+            assertFails { mlKem768Encapsulate(invalid) }
+            assertFalse(mlKem768IsValidEncapsulationKey(encapsulationKey.copyOf(1183)))
+        }
 
     @Test
     fun ed25519VerifiesKnownSignature() {
